@@ -1,0 +1,921 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Photo Organizer</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" defer></script>
+  <style>
+    :root {
+      --bg: #09090b;
+      --bg-soft: #111114;
+      --card: #18181b;
+      --line: #2f2f34;
+      --text: #f4f4f5;
+      --muted: #a1a1aa;
+      --pass: #ef4444;
+      --match: #22c55e;
+      --focus: #38bdf8;
+      --btn: #27272a;
+      --btn-hover: #323238;
+      --shadow: 0 20px 45px rgba(0, 0, 0, 0.38);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      background:
+        radial-gradient(130% 80% at 0% 0%, rgba(63, 63, 70, 0.18), transparent 55%),
+        radial-gradient(140% 85% at 100% 100%, rgba(39, 39, 42, 0.3), transparent 60%),
+        var(--bg);
+      color: var(--text);
+      font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+      overflow: hidden;
+    }
+
+    .app {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      place-items: center;
+      padding: 14px;
+      gap: 10px;
+    }
+
+    .top {
+      width: min(980px, 100%);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 2px 4px;
+      opacity: 0;
+      transform: translateY(-6px);
+      animation: reveal-top 320ms ease-out forwards;
+    }
+
+    .counter {
+      font-size: 0.82rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--muted);
+      background: rgba(24, 24, 27, 0.72);
+      border: 1px solid rgba(63, 63, 70, 0.6);
+      border-radius: 999px;
+      padding: 6px 12px;
+      backdrop-filter: blur(3px);
+    }
+
+    .lang {
+      background: rgba(24, 24, 27, 0.74);
+      color: var(--text);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 6px 10px;
+      font-size: 0.82rem;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .lang:focus-visible,
+    button:focus-visible {
+      outline: 2px solid var(--focus);
+      outline-offset: 2px;
+    }
+
+    .board {
+      position: relative;
+      width: min(980px, 100%);
+      height: 100%;
+      display: grid;
+      place-items: center;
+    }
+
+    .card-shell {
+      width: min(880px, 100%);
+      height: min(72vh, 780px);
+      position: relative;
+      perspective: 1000px;
+      opacity: 0;
+      transform: translateY(16px) scale(0.99);
+      animation: reveal-card 420ms ease-out forwards;
+    }
+
+    .card {
+      width: 100%;
+      height: 100%;
+      border-radius: 18px;
+      background: linear-gradient(155deg, rgba(39, 39, 42, 0.74), rgba(24, 24, 27, 0.95));
+      border: 1px solid rgba(63, 63, 70, 0.72);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      position: relative;
+      display: grid;
+      place-items: center;
+      transition: transform 220ms ease, filter 220ms ease;
+    }
+
+    .card img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      user-select: none;
+      -webkit-user-drag: none;
+      background: repeating-linear-gradient(
+        -45deg,
+        rgba(24, 24, 27, 0.85),
+        rgba(24, 24, 27, 0.85) 14px,
+        rgba(39, 39, 42, 0.75) 14px,
+        rgba(39, 39, 42, 0.75) 28px
+      );
+    }
+
+    .badge {
+      position: absolute;
+      top: 20px;
+      padding: 7px 12px;
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 0.82rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      opacity: 0;
+      pointer-events: none;
+      border: 1px solid currentColor;
+      backdrop-filter: blur(2px);
+    }
+
+    .badge.pass {
+      left: 20px;
+      color: #fecaca;
+      background: rgba(153, 27, 27, 0.45);
+    }
+
+    .badge.match {
+      right: 20px;
+      color: #bbf7d0;
+      background: rgba(22, 101, 52, 0.45);
+    }
+
+    .card.is-pass {
+      animation: swipe-pass 290ms cubic-bezier(0.26, 0.76, 0.34, 0.98) forwards;
+    }
+
+    .card.is-match {
+      animation: swipe-match 290ms cubic-bezier(0.26, 0.76, 0.34, 0.98) forwards;
+    }
+
+    .card.is-pass .badge.pass,
+    .card.is-match .badge.match {
+      opacity: 1;
+      animation: badge-in 220ms ease-out;
+    }
+
+    .empty,
+    .picker {
+      width: min(680px, 100%);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: rgba(24, 24, 27, 0.86);
+      box-shadow: var(--shadow);
+      padding: 28px;
+      text-align: center;
+      display: grid;
+      gap: 14px;
+    }
+
+    .title {
+      margin: 0;
+      font-weight: 650;
+      letter-spacing: 0.01em;
+      font-size: clamp(1.18rem, 1.6vw, 1.34rem);
+    }
+
+    .txt {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.56;
+      font-size: 0.95rem;
+    }
+
+    .actions {
+      width: min(980px, 100%);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 14px;
+      padding-bottom: 8px;
+      opacity: 0;
+      transform: translateY(8px);
+      animation: reveal-bottom 340ms 120ms ease-out forwards;
+    }
+
+    button {
+      border: 1px solid var(--line);
+      background: var(--btn);
+      color: var(--text);
+      border-radius: 12px;
+      padding: 11px 18px;
+      font-size: 0.92rem;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+      cursor: pointer;
+      transition: background 160ms ease, transform 120ms ease, border-color 160ms ease;
+      min-width: 110px;
+    }
+
+    button:hover {
+      background: var(--btn-hover);
+    }
+
+    button:active {
+      transform: translateY(1px);
+    }
+
+    .btn-pass {
+      border-color: rgba(185, 28, 28, 0.5);
+    }
+
+    .btn-match {
+      border-color: rgba(21, 128, 61, 0.5);
+    }
+
+    .btn-ghost {
+      min-width: 86px;
+    }
+
+    .hide {
+      display: none !important;
+    }
+
+    @keyframes swipe-pass {
+      to {
+        transform: translateX(-54vw) rotate(-16deg) scale(0.92);
+        opacity: 0;
+        filter: blur(1px);
+      }
+    }
+
+    @keyframes swipe-match {
+      to {
+        transform: translateX(54vw) rotate(16deg) scale(0.92);
+        opacity: 0;
+        filter: blur(1px);
+      }
+    }
+
+    @keyframes badge-in {
+      from {
+        transform: scale(0.9);
+        opacity: 0;
+      }
+      to {
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
+
+    @keyframes reveal-top {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes reveal-card {
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    @keyframes reveal-bottom {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @media (max-width: 820px) {
+      .app {
+        padding: 10px;
+      }
+
+      .card-shell {
+        height: min(66vh, 620px);
+      }
+
+      .actions {
+        gap: 10px;
+      }
+
+      button {
+        min-width: 96px;
+        padding: 10px 12px;
+      }
+
+      .badge {
+        top: 12px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="top">
+      <div id="counter" class="counter"></div>
+      <select id="lang" class="lang" aria-label="Language selector">
+        <option value="en">English</option>
+        <option value="pt">Português</option>
+        <option value="fr">Français</option>
+        <option value="es">Español</option>
+      </select>
+    </header>
+
+    <section id="board" class="board"></section>
+
+    <footer id="actions" class="actions">
+      <button id="btnExport" class="btn-ghost" type="button"></button>
+      <button id="btnPass" class="btn-pass" type="button"></button>
+      <button id="btnMatch" class="btn-match" type="button"></button>
+    </footer>
+  </main>
+
+  <script>
+    (() => {
+      const STORAGE_KEY = "photo-triage-v1";
+      const LOOKAHEAD = 3;
+      const IMG_EXT = new Set(["jpg", "jpeg", "png", "webp", "gif", "bmp", "avif", "heic", "heif", "tiff"]);
+      const MOVE_PASS = "pass";
+      const MOVE_MATCH = "match";
+
+      const dict = {
+        en: {
+          appTitle: "Photo Organizer",
+          pickTitle: "Choose a folder to start triage",
+          pickTxt: "Scanning starts instantly and only walks folders as needed. Best for slow HDDs.",
+          pickBtn: "Open Folder",
+          resumeTxt: "A previous session was found. Pick the same folder to continue.",
+          pass: "Pass",
+          match: "Match",
+          export: "Export",
+          noImages: "No supported images found in this folder tree.",
+          doneTitle: "Session complete",
+          doneTxt: "You can export selected photos or open another folder.",
+          openOther: "Open Another Folder",
+          progress: "{seen} seen • {match} match",
+          exporting: "Building ZIP...",
+          exportName: "saved_photos.zip",
+          exportEmpty: "No matches to export yet.",
+          unsupportedApi: "This browser does not support File System Access API.",
+          noZip: "JSZip is unavailable. Reload the page and try again.",
+          cannotResume: "Could not rebuild the previous state. Starting from root.",
+          actionHint: "Use keyboard arrows: left for pass, right for match."
+        },
+        pt: {
+          appTitle: "Organizador de Fotos",
+          pickTitle: "Escolhe uma pasta para iniciar a triagem",
+          pickTxt: "A leitura começa de imediato e percorre subpastas apenas quando necessário. Ideal para HDDs lentos.",
+          pickBtn: "Abrir Pasta",
+          resumeTxt: "Foi encontrada uma sessão anterior. Escolhe a mesma pasta para retomar.",
+          pass: "Passar",
+          match: "Match",
+          export: "Exportar",
+          noImages: "Nenhuma imagem suportada foi encontrada nesta árvore de pastas.",
+          doneTitle: "Triagem concluída",
+          doneTxt: "Podes exportar as fotos selecionadas ou abrir outra pasta.",
+          openOther: "Abrir Outra Pasta",
+          progress: "{seen} vistas • {match} match",
+          exporting: "A criar ZIP...",
+          exportName: "triagem_salvados.zip",
+          exportEmpty: "Ainda não há imagens marcadas como match.",
+          unsupportedApi: "Este navegador não suporta a File System Access API.",
+          noZip: "JSZip indisponível. Recarrega a página e tenta novamente.",
+          cannotResume: "Não foi possível reconstruir o estado anterior. A iniciar da raiz.",
+          actionHint: "Atalhos: seta esquerda para passar, seta direita para match."
+        },
+        fr: {
+          appTitle: "Organisateur Photo",
+          pickTitle: "Choisissez un dossier pour démarrer le tri",
+          pickTxt: "Le scan démarre instantanément et explore les sous-dossiers à la demande. Idéal pour un HDD lent.",
+          pickBtn: "Ouvrir Dossier",
+          resumeTxt: "Une session précédente a été trouvée. Choisissez le même dossier pour reprendre.",
+          pass: "Passer",
+          match: "Match",
+          export: "Exporter",
+          noImages: "Aucune image prise en charge dans cette arborescence.",
+          doneTitle: "Session terminée",
+          doneTxt: "Vous pouvez exporter les photos sélectionnées ou ouvrir un autre dossier.",
+          openOther: "Ouvrir un autre dossier",
+          progress: "{seen} vues • {match} match",
+          exporting: "Création du ZIP...",
+          exportName: "photos_selectionnees.zip",
+          exportEmpty: "Aucun match à exporter pour le moment.",
+          unsupportedApi: "Ce navigateur ne prend pas en charge la File System Access API.",
+          noZip: "JSZip indisponible. Rechargez la page et réessayez.",
+          cannotResume: "Impossible de restaurer l'état précédent. Reprise depuis la racine.",
+          actionHint: "Raccourcis: flèche gauche pour passer, flèche droite pour match."
+        },
+        es: {
+          appTitle: "Organizador de Fotos",
+          pickTitle: "Elige una carpeta para iniciar la selección",
+          pickTxt: "El escaneo empieza al instante y recorre subcarpetas solo cuando hace falta. Ideal para HDDs lentos.",
+          pickBtn: "Abrir Carpeta",
+          resumeTxt: "Se encontró una sesión anterior. Elige la misma carpeta para continuar.",
+          pass: "Pasar",
+          match: "Match",
+          export: "Exportar",
+          noImages: "No se encontraron imágenes compatibles en este árbol de carpetas.",
+          doneTitle: "Sesión completada",
+          doneTxt: "Puedes exportar las fotos seleccionadas o abrir otra carpeta.",
+          openOther: "Abrir Otra Carpeta",
+          progress: "{seen} vistas • {match} match",
+          exporting: "Creando ZIP...",
+          exportName: "seleccion_guardadas.zip",
+          exportEmpty: "Todavía no hay imágenes marcadas como match.",
+          unsupportedApi: "Este navegador no soporta File System Access API.",
+          noZip: "JSZip no está disponible. Recarga la página e inténtalo de nuevo.",
+          cannotResume: "No se pudo reconstruir el estado anterior. Reiniciando desde la raíz.",
+          actionHint: "Atajos: flecha izquierda para pasar, flecha derecha para match."
+        }
+      };
+
+      const $ = {
+        board: document.getElementById("board"),
+        counter: document.getElementById("counter"),
+        actions: document.getElementById("actions"),
+        btnPass: document.getElementById("btnPass"),
+        btnMatch: document.getElementById("btnMatch"),
+        btnExport: document.getElementById("btnExport"),
+        lang: document.getElementById("lang")
+      };
+
+      const state = {
+        lang: detectLang(),
+        root: null,
+        stack: [],
+        queue: [],
+        gen: null,
+        matched: [],
+        seen: 0,
+        processing: false,
+        exhausted: false,
+        lastProcessed: null,
+        ready: false
+      };
+
+      function detectLang() {
+        const raw = String(navigator.language || "en").toLowerCase();
+        if (raw.startsWith("pt")) return "pt";
+        if (raw.startsWith("fr")) return "fr";
+        if (raw.startsWith("es")) return "es";
+        return "en";
+      }
+
+      function t(k, vars = {}) {
+        const base = dict[state.lang] || dict.en;
+        const fallback = dict.en;
+        let txt = base[k] || fallback[k] || k;
+        for (const [name, val] of Object.entries(vars)) {
+          txt = txt.replace(`{${name}}`, String(val));
+        }
+        return txt;
+      }
+
+      function relJoin(base, seg) {
+        return base ? `${base}/${seg}` : seg;
+      }
+
+      function extOf(name) {
+        const i = name.lastIndexOf(".");
+        return i < 0 ? "" : name.slice(i + 1).toLowerCase();
+      }
+
+      function isImage(name) {
+        return IMG_EXT.has(extOf(name));
+      }
+
+      function snapshot() {
+        return {
+          lang: state.lang,
+          stackRel: state.stack.map((n) => n.rel),
+          matched: state.matched.slice(),
+          seen: state.seen,
+          exhausted: state.exhausted,
+          lastProcessed: state.lastProcessed
+        };
+      }
+
+      function persist() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot()));
+      }
+
+      function restore() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          return raw ? JSON.parse(raw) : null;
+        } catch {
+          return null;
+        }
+      }
+
+      async function resolveDir(root, rel) {
+        if (!rel) return root;
+        const parts = rel.split("/").filter(Boolean);
+        let cur = root;
+        for (const p of parts) {
+          cur = await cur.getDirectoryHandle(p);
+        }
+        return cur;
+      }
+
+      async function rebuildStack(root, rels) {
+        const out = [];
+        for (const rel of rels) {
+          try {
+            const handle = await resolveDir(root, rel);
+            out.push({ rel, handle });
+          } catch {
+          }
+        }
+        if (!out.length) {
+          out.push({ rel: "", handle: root });
+        }
+        return out;
+      }
+
+      async function* scanImages(runtime) {
+        while (runtime.stack.length) {
+          const node = runtime.stack.pop();
+          persist();
+          for await (const [name, handle] of node.handle.entries()) {
+            if (handle.kind === "directory") {
+              runtime.stack.push({ rel: relJoin(node.rel, name), handle });
+              continue;
+            }
+            if (isImage(name)) {
+              yield { path: relJoin(node.rel, name), handle };
+            }
+          }
+        }
+      }
+
+      async function fillQueue() {
+        if (!state.gen || state.exhausted) return;
+        while (state.queue.length < LOOKAHEAD + 1 && !state.exhausted) {
+          const { value, done } = await state.gen.next();
+          if (done) {
+            state.exhausted = true;
+            persist();
+            break;
+          }
+          const file = await value.handle.getFile();
+          const url = URL.createObjectURL(file);
+          state.queue.push({ path: value.path, file, url });
+        }
+      }
+
+      function releaseItem(item) {
+        if (!item) return;
+        try {
+          URL.revokeObjectURL(item.url);
+        } catch {
+        }
+      }
+
+      function releaseAllQueue() {
+        for (const item of state.queue) releaseItem(item);
+        state.queue = [];
+      }
+
+      function uiPicker(saved) {
+        const supportsFs = typeof window.showDirectoryPicker === "function";
+        const msg = !supportsFs
+          ? t("unsupportedApi")
+          : saved
+            ? `${t("resumeTxt")} ${t("actionHint")}`
+            : `${t("pickTxt")} ${t("actionHint")}`;
+
+        $.board.innerHTML = `
+          <div class="picker">
+            <h1 class="title">${t("pickTitle")}</h1>
+            <p class="txt">${msg}</p>
+            <div>
+              <button id="btnPick" type="button" ${supportsFs ? "" : "disabled"}>${t("pickBtn")}</button>
+            </div>
+          </div>
+        `;
+
+        $.actions.classList.add("hide");
+        const $btnPick = document.getElementById("btnPick");
+        if ($btnPick) {
+          $btnPick.addEventListener("click", () => startPick(saved));
+        }
+      }
+
+      function uiEmpty() {
+        $.board.innerHTML = `
+          <div class="empty">
+            <h1 class="title">${t("noImages")}</h1>
+            <p class="txt">${t("pickTxt")}</p>
+            <div>
+              <button id="btnNew" type="button">${t("openOther")}</button>
+            </div>
+          </div>
+        `;
+        $.actions.classList.add("hide");
+        const $btnNew = document.getElementById("btnNew");
+        if ($btnNew) {
+          $btnNew.addEventListener("click", () => resetSession(false));
+        }
+      }
+
+      function uiDone() {
+        $.board.innerHTML = `
+          <div class="empty">
+            <h1 class="title">${t("doneTitle")}</h1>
+            <p class="txt">${t("doneTxt")}</p>
+            <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+              <button id="btnDoneExport" type="button">${t("export")}</button>
+              <button id="btnDoneNew" type="button">${t("openOther")}</button>
+            </div>
+          </div>
+        `;
+        $.actions.classList.add("hide");
+        const $exp = document.getElementById("btnDoneExport");
+        const $new = document.getElementById("btnDoneNew");
+        if ($exp) $exp.addEventListener("click", exportZip);
+        if ($new) $new.addEventListener("click", () => resetSession(false));
+      }
+
+      function renderCard() {
+        const head = state.queue[0];
+        if (!head) {
+          if (state.exhausted) uiDone();
+          else uiEmpty();
+          updateCounter();
+          return;
+        }
+
+        $.board.innerHTML = `
+          <div class="card-shell">
+            <article id="card" class="card">
+              <span class="badge pass">${t("pass")}</span>
+              <span class="badge match">${t("match")}</span>
+              <img src="${head.url}" alt="${head.path.replace(/"/g, "")}" draggable="false" />
+            </article>
+          </div>
+        `;
+        $.actions.classList.remove("hide");
+        updateCounter();
+      }
+
+      function updateTextsOnly() {
+        document.title = t("appTitle");
+        $.btnPass.textContent = t("pass");
+        $.btnMatch.textContent = t("match");
+        $.btnExport.textContent = t("export");
+        updateCounter();
+      }
+
+      function updateCounter() {
+        $.counter.textContent = t("progress", {
+          seen: state.seen,
+          match: state.matched.length
+        });
+      }
+
+      async function startPick(saved) {
+        try {
+          const root = await window.showDirectoryPicker({ mode: "read" });
+          await bootstrap(root, saved);
+        } catch {
+        }
+      }
+
+      async function bootstrap(root, saved) {
+        state.root = root;
+        state.queue = [];
+        state.processing = false;
+        state.exhausted = false;
+
+        let stackRel = [""];
+        state.matched = [];
+        state.seen = 0;
+        state.lastProcessed = null;
+
+        if (saved) {
+          state.matched = Array.isArray(saved.matched) ? saved.matched.filter(Boolean) : [];
+          state.seen = Number(saved.seen) || 0;
+          state.lastProcessed = saved.lastProcessed || null;
+          if (Array.isArray(saved.stackRel) && saved.stackRel.length) {
+            stackRel = saved.stackRel;
+          }
+        }
+
+        try {
+          state.stack = await rebuildStack(root, stackRel);
+        } catch {
+          state.stack = [{ rel: "", handle: root }];
+          alert(t("cannotResume"));
+        }
+
+        state.gen = scanImages(state);
+        await fillQueue();
+        state.ready = true;
+
+        if (!state.queue.length && state.exhausted) {
+          uiEmpty();
+        } else {
+          renderCard();
+        }
+        persist();
+      }
+
+      function move(dir) {
+        if (!state.ready || state.processing || !state.queue.length) return;
+        state.processing = true;
+
+        const top = state.queue[0];
+        const card = document.getElementById("card");
+        if (!card) {
+          state.processing = false;
+          return;
+        }
+
+        card.classList.add(dir === MOVE_PASS ? "is-pass" : "is-match");
+
+        const done = async () => {
+          if (dir === MOVE_MATCH) {
+            state.matched.push(top.path);
+          }
+
+          state.seen += 1;
+          state.lastProcessed = top.path;
+
+          releaseItem(state.queue.shift());
+          persist();
+
+          await fillQueue();
+          renderCard();
+          state.processing = false;
+        };
+
+        card.addEventListener("animationend", done, { once: true });
+      }
+
+      function pathParentAndName(rel) {
+        const i = rel.lastIndexOf("/");
+        if (i < 0) return { dir: "", name: rel };
+        return { dir: rel.slice(0, i), name: rel.slice(i + 1) };
+      }
+
+      async function getFileByRel(rel) {
+        const { dir, name } = pathParentAndName(rel);
+        const parent = await resolveDir(state.root, dir);
+        const fileHandle = await parent.getFileHandle(name);
+        return fileHandle.getFile();
+      }
+
+      async function exportZip() {
+        if (!state.matched.length) {
+          alert(t("exportEmpty"));
+          return;
+        }
+        if (!window.JSZip) {
+          alert(t("noZip"));
+          return;
+        }
+
+        const prev = $.btnExport.textContent;
+        $.btnExport.textContent = t("exporting");
+        $.btnExport.disabled = true;
+
+        try {
+          const zip = new JSZip();
+          const used = new Map();
+
+          for (const rel of state.matched) {
+            try {
+              const file = await getFileByRel(rel);
+              const fileName = rel.split("/").pop() || "image";
+              let saveName = fileName;
+              const n = used.get(fileName) || 0;
+              if (n > 0) {
+                const dot = fileName.lastIndexOf(".");
+                const b = dot > 0 ? fileName.slice(0, dot) : fileName;
+                const e = dot > 0 ? fileName.slice(dot) : "";
+                saveName = `${b}_${n}${e}`;
+              }
+              used.set(fileName, n + 1);
+              zip.file(saveName, file);
+            } catch {
+            }
+          }
+
+          const blob = await zip.generateAsync({ type: "blob", compression: "DEFLATE", compressionOptions: { level: 4 } });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = t("exportName");
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          URL.revokeObjectURL(url);
+        } finally {
+          $.btnExport.disabled = false;
+          $.btnExport.textContent = prev || t("export");
+        }
+      }
+
+      function resetSession(preserveLang) {
+        releaseAllQueue();
+        localStorage.removeItem(STORAGE_KEY);
+
+        state.root = null;
+        state.stack = [];
+        state.queue = [];
+        state.gen = null;
+        state.matched = [];
+        state.seen = 0;
+        state.processing = false;
+        state.exhausted = false;
+        state.lastProcessed = null;
+        state.ready = false;
+
+        if (!preserveLang) {
+          state.lang = state.lang || detectLang();
+        }
+
+        uiPicker(null);
+        updateTextsOnly();
+      }
+
+      function refreshCurrentView(savedState) {
+        updateTextsOnly();
+        if (!state.ready) {
+          uiPicker(savedState);
+          return;
+        }
+        const hasCurrent = Boolean(state.queue[0]);
+        if (hasCurrent) {
+          renderCard();
+          return;
+        }
+        if (state.exhausted) uiDone();
+        else uiEmpty();
+      }
+
+      function bindEvents() {
+        $.btnPass.addEventListener("click", () => move(MOVE_PASS));
+        $.btnMatch.addEventListener("click", () => move(MOVE_MATCH));
+        $.btnExport.addEventListener("click", exportZip);
+
+        document.addEventListener("keydown", (ev) => {
+          if (!state.ready) return;
+          const tag = document.activeElement?.tagName;
+          if (tag === "INPUT" || tag === "SELECT" || tag === "TEXTAREA") return;
+          if (ev.key === "ArrowLeft") {
+            ev.preventDefault();
+            move(MOVE_PASS);
+          } else if (ev.key === "ArrowRight") {
+            ev.preventDefault();
+            move(MOVE_MATCH);
+          }
+        });
+
+        $.lang.addEventListener("change", () => {
+          state.lang = $.lang.value in dict ? $.lang.value : "en";
+          const snap = restore() || {};
+          snap.lang = state.lang;
+          localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...snapshot(), ...snap }));
+          refreshCurrentView(snap);
+        });
+      }
+
+      function init() {
+        bindEvents();
+
+        const saved = restore();
+        if (saved && saved.lang && saved.lang in dict) {
+          state.lang = saved.lang;
+        }
+        $.lang.value = state.lang;
+
+        updateTextsOnly();
+        uiPicker(saved);
+      }
+
+      window.addEventListener("beforeunload", persist);
+      init();
+    })();
+  </script>
+</body>
+</html>
