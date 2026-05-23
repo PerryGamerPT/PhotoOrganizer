@@ -3,27 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Photo Organizer</title>
+  <title>MediaTinder</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" defer></script>
   <style>
     :root {
-      --bg: #09090b;
-      --bg-soft: #111114;
-      --card: #18181b;
-      --line: #2f2f34;
-      --text: #f4f4f5;
-      --muted: #a1a1aa;
-      --pass: #ef4444;
-      --match: #22c55e;
-      --focus: #38bdf8;
-      --btn: #27272a;
-      --btn-hover: #323238;
-      --shadow: 0 20px 45px rgba(0, 0, 0, 0.38);
-    }
-
-    * {
-      box-sizing: border-box;
+      color-scheme: dark;
     }
 
     html,
@@ -32,314 +17,62 @@
       width: 100%;
       height: 100%;
       background:
-        radial-gradient(130% 80% at 0% 0%, rgba(63, 63, 70, 0.18), transparent 55%),
-        radial-gradient(140% 85% at 100% 100%, rgba(39, 39, 42, 0.3), transparent 60%),
-        var(--bg);
-      color: var(--text);
-      font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+        radial-gradient(130% 90% at 0% 0%, rgba(63, 63, 70, 0.17), transparent 58%),
+        radial-gradient(140% 90% at 100% 100%, rgba(39, 39, 42, 0.25), transparent 62%),
+        #09090b;
       overflow: hidden;
-    }
-
-    .app {
-      position: relative;
-      width: 100%;
-      height: 100%;
-      display: grid;
-      grid-template-rows: auto 1fr auto;
-      place-items: center;
-      padding: 14px;
-      gap: 10px;
-    }
-
-    .top {
-      width: min(980px, 100%);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 2px 4px;
-      opacity: 0;
-      transform: translateY(-6px);
-      animation: reveal-top 320ms ease-out forwards;
-    }
-
-    .counter {
-      font-size: 0.82rem;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
-      color: var(--muted);
-      background: rgba(24, 24, 27, 0.72);
-      border: 1px solid rgba(63, 63, 70, 0.6);
-      border-radius: 999px;
-      padding: 6px 12px;
-      backdrop-filter: blur(3px);
-    }
-
-    .lang {
-      background: rgba(24, 24, 27, 0.74);
-      color: var(--text);
-      border: 1px solid var(--line);
-      border-radius: 10px;
-      padding: 6px 10px;
-      font-size: 0.82rem;
-      outline: none;
-      cursor: pointer;
-    }
-
-    .lang:focus-visible,
-    button:focus-visible {
-      outline: 2px solid var(--focus);
-      outline-offset: 2px;
-    }
-
-    .board {
-      position: relative;
-      width: min(980px, 100%);
-      height: 100%;
-      display: grid;
-      place-items: center;
+      font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
     }
 
     .card-shell {
-      width: min(880px, 100%);
-      height: min(72vh, 780px);
-      position: relative;
-      perspective: 1000px;
-      opacity: 0;
-      transform: translateY(16px) scale(0.99);
-      animation: reveal-card 420ms ease-out forwards;
+      perspective: 900px;
     }
 
     .card {
-      width: 100%;
-      height: 100%;
-      border-radius: 18px;
-      background: linear-gradient(155deg, rgba(39, 39, 42, 0.74), rgba(24, 24, 27, 0.95));
-      border: 1px solid rgba(63, 63, 70, 0.72);
-      box-shadow: var(--shadow);
-      overflow: hidden;
-      position: relative;
-      display: grid;
-      place-items: center;
-      transition: transform 220ms ease, filter 220ms ease;
+      transition: transform 220ms ease, opacity 220ms ease, border-color 180ms ease;
+      will-change: transform, opacity;
     }
 
-    .card img {
-      width: 100%;
-      height: 100%;
-      object-fit: contain;
+    .card.out-pass {
+      border-color: rgba(248, 113, 113, 0.95);
+      transform: translateX(-54vw) rotate(-14deg) scale(0.95);
+      opacity: 0;
+    }
+
+    .card.out-match {
+      border-color: rgba(74, 222, 128, 0.95);
+      transform: translateX(54vw) rotate(14deg) scale(0.95);
+      opacity: 0;
+    }
+
+    .media-pending {
+      opacity: 0;
+    }
+
+    .media-ready {
       opacity: 1;
       transition: opacity 180ms ease;
-      user-select: none;
-      -webkit-user-drag: none;
-      background: repeating-linear-gradient(
-        -45deg,
-        rgba(24, 24, 27, 0.85),
-        rgba(24, 24, 27, 0.85) 14px,
-        rgba(39, 39, 42, 0.75) 14px,
-        rgba(39, 39, 42, 0.75) 28px
-      );
-    }
-
-    .img-pending {
-      opacity: 0;
-    }
-
-    .loader-layer {
-      position: absolute;
-      inset: 0;
-      pointer-events: none;
-      display: grid;
-      place-items: center;
-      background:
-        radial-gradient(120% 80% at 50% 10%, rgba(63, 63, 70, 0.2), transparent 65%),
-        linear-gradient(180deg, rgba(24, 24, 27, 0.78), rgba(24, 24, 27, 0.58));
-      transition: opacity 180ms ease;
-    }
-
-    .loader-layer.is-hidden {
-      opacity: 0;
     }
 
     .skeleton {
-      width: min(84%, 620px);
-      height: min(72%, 420px);
-      border-radius: 14px;
-      border: 1px solid rgba(63, 63, 70, 0.75);
       background:
-        linear-gradient(110deg, rgba(39, 39, 42, 0.25) 8%, rgba(82, 82, 91, 0.22) 18%, rgba(39, 39, 42, 0.25) 33%),
-        rgba(24, 24, 27, 0.65);
+        linear-gradient(110deg, rgba(39, 39, 42, 0.35) 8%, rgba(82, 82, 91, 0.26) 18%, rgba(39, 39, 42, 0.35) 33%),
+        rgba(24, 24, 27, 0.75);
       background-size: 200% 100%;
-      animation: skeleton-wave 1.2s linear infinite;
-      position: absolute;
+      animation: wave 1.15s linear infinite;
     }
 
-    .badge {
-      position: absolute;
-      top: 20px;
-      padding: 7px 12px;
-      border-radius: 10px;
-      font-weight: 700;
-      font-size: 0.82rem;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      opacity: 0;
-      pointer-events: none;
-      border: 1px solid currentColor;
-      backdrop-filter: blur(2px);
+    .truncate-middle {
+      display: block;
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      direction: rtl;
+      text-align: left;
     }
 
-    .badge.pass {
-      left: 20px;
-      color: #fecaca;
-      background: rgba(153, 27, 27, 0.45);
-    }
-
-    .badge.match {
-      right: 20px;
-      color: #bbf7d0;
-      background: rgba(22, 101, 52, 0.45);
-    }
-
-    .card.is-pass {
-      animation: swipe-pass 290ms cubic-bezier(0.26, 0.76, 0.34, 0.98) forwards;
-    }
-
-    .card.is-match {
-      animation: swipe-match 290ms cubic-bezier(0.26, 0.76, 0.34, 0.98) forwards;
-    }
-
-    .card.is-pass .badge.pass,
-    .card.is-match .badge.match {
-      opacity: 1;
-      animation: badge-in 220ms ease-out;
-    }
-
-    .empty,
-    .picker {
-      width: min(680px, 100%);
-      border: 1px solid var(--line);
-      border-radius: 16px;
-      background: rgba(24, 24, 27, 0.86);
-      box-shadow: var(--shadow);
-      padding: 28px;
-      text-align: center;
-      display: grid;
-      gap: 14px;
-    }
-
-    .title {
-      margin: 0;
-      font-weight: 650;
-      letter-spacing: 0.01em;
-      font-size: clamp(1.18rem, 1.6vw, 1.34rem);
-    }
-
-    .txt {
-      margin: 0;
-      color: var(--muted);
-      line-height: 1.56;
-      font-size: 0.95rem;
-    }
-
-    .actions {
-      width: min(980px, 100%);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      gap: 14px;
-      padding-bottom: 8px;
-      opacity: 0;
-      transform: translateY(8px);
-      animation: reveal-bottom 340ms 120ms ease-out forwards;
-    }
-
-    button {
-      border: 1px solid var(--line);
-      background: var(--btn);
-      color: var(--text);
-      border-radius: 12px;
-      padding: 11px 18px;
-      font-size: 0.92rem;
-      font-weight: 600;
-      letter-spacing: 0.01em;
-      cursor: pointer;
-      transition: background 160ms ease, transform 120ms ease, border-color 160ms ease;
-      min-width: 110px;
-    }
-
-    button:hover {
-      background: var(--btn-hover);
-    }
-
-    button:active {
-      transform: translateY(1px);
-    }
-
-    .btn-pass {
-      border-color: rgba(185, 28, 28, 0.5);
-    }
-
-    .btn-match {
-      border-color: rgba(21, 128, 61, 0.5);
-    }
-
-    .btn-ghost {
-      min-width: 86px;
-    }
-
-    .hide {
-      display: none !important;
-    }
-
-    @keyframes swipe-pass {
-      to {
-        transform: translateX(-54vw) rotate(-16deg) scale(0.92);
-        opacity: 0;
-        filter: blur(1px);
-      }
-    }
-
-    @keyframes swipe-match {
-      to {
-        transform: translateX(54vw) rotate(16deg) scale(0.92);
-        opacity: 0;
-        filter: blur(1px);
-      }
-    }
-
-    @keyframes badge-in {
-      from {
-        transform: scale(0.9);
-        opacity: 0;
-      }
-      to {
-        transform: scale(1);
-        opacity: 1;
-      }
-    }
-
-    @keyframes reveal-top {
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-
-    @keyframes reveal-card {
-      to {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-      }
-    }
-
-    @keyframes reveal-bottom {
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-
-    @keyframes skeleton-wave {
+    @keyframes wave {
       from {
         background-position-x: 180%;
       }
@@ -347,177 +80,209 @@
         background-position-x: -20%;
       }
     }
-
-    @media (max-width: 820px) {
-      .app {
-        padding: 10px;
-      }
-
-      .card-shell {
-        height: min(66vh, 620px);
-      }
-
-      .actions {
-        gap: 10px;
-      }
-
-      button {
-        min-width: 96px;
-        padding: 10px 12px;
-      }
-
-      .badge {
-        top: 12px;
-      }
-    }
   </style>
 </head>
-<body>
-  <main class="app">
-    <header class="top">
-      <div id="counter" class="counter"></div>
-      <select id="lang" class="lang" aria-label="Language selector">
-        <option value="en">English</option>
-        <option value="pt">Português</option>
-        <option value="fr">Français</option>
-        <option value="es">Español</option>
-      </select>
+<body class="bg-zinc-950 text-zinc-100">
+  <main class="h-full w-full grid grid-rows-[auto_1fr_auto] place-items-center p-3 sm:p-4 gap-2">
+    <header class="w-full max-w-6xl flex items-center justify-between gap-3">
+      <div id="counter" class="text-[11px] sm:text-xs uppercase tracking-[0.12em] text-zinc-400 border border-zinc-700/80 bg-zinc-900/80 rounded-full px-3 py-1.5">
+        0
+      </div>
+      <div class="flex items-center gap-2">
+        <div id="verTag" class="text-[10px] text-zinc-500 border border-zinc-800 rounded-md px-2 py-1 bg-zinc-900/70"></div>
+        <select id="lang" class="text-xs rounded-md bg-zinc-900 border border-zinc-700 text-zinc-100 px-2 py-1.5 outline-none focus:ring-2 focus:ring-sky-400/60">
+          <option value="en">English</option>
+          <option value="pt">Português</option>
+          <option value="fr">Français</option>
+          <option value="es">Español</option>
+        </select>
+      </div>
     </header>
 
-    <section id="board" class="board"></section>
+    <section id="board" class="w-full h-full max-w-6xl grid place-items-center"></section>
 
-    <footer id="actions" class="actions">
-      <button id="btnExport" class="btn-ghost" type="button"></button>
-      <button id="btnPass" class="btn-pass" type="button"></button>
-      <button id="btnMatch" class="btn-match" type="button"></button>
+    <footer id="controls" class="w-full max-w-6xl flex items-center justify-center gap-3 pb-1">
+      <button id="btnExport" type="button" class="min-w-[92px] rounded-xl border border-zinc-700 bg-zinc-900 hover:bg-zinc-800 px-4 py-2 text-sm font-medium">Export</button>
+      <button id="btnPass" type="button" class="min-w-[104px] rounded-xl border border-red-900/70 bg-zinc-900 hover:bg-zinc-800 px-4 py-2 text-sm font-semibold">Pass</button>
+      <button id="btnMatch" type="button" class="min-w-[104px] rounded-xl border border-emerald-900/70 bg-zinc-900 hover:bg-zinc-800 px-4 py-2 text-sm font-semibold">Match</button>
     </footer>
   </main>
 
   <script>
     (() => {
-      const STORAGE_KEY = "photo-triage-v1";
-      const LOOKAHEAD = 20;
-      const BUFFER_TARGET = LOOKAHEAD + 1;
+      const APP_VERSION = "v1.3.0";
+      const APP_COMMIT = "main-working";
+      const STORAGE_KEY = "mediatinder-v2";
+      const BUFFER_AHEAD = 20;
+      const BUFFER_SIZE = BUFFER_AHEAD + 1;
       const MIN_BYTES = 50 * 1024;
       const SKIP_DIRS = ["windows", "program files", "appdata", "node_modules"];
-      const IMG_EXT = new Set(["jpg", "jpeg", "png", "webp", "gif", "bmp", "avif", "heic", "heif", "tiff"]);
-      const MOVE_PASS = "pass";
-      const MOVE_MATCH = "match";
+      const PASS = "pass";
+      const MATCH = "match";
+      const IMG_EXT = new Set(["jpg", "jpeg", "png", "webp"]);
+      const VID_EXT = new Set(["mp4", "mov", "webm"]);
 
-      const dict = {
+      const I18N = {
         en: {
-          appTitle: "Photo Organizer",
-          pickTitle: "Choose a folder to start triage",
-          pickTxt: "Scanning starts instantly and only walks folders as needed. Best for slow HDDs.",
-          pickBtn: "Open Folder",
-          resumeTxt: "A previous session was found. Pick the same folder to continue.",
+          title: "MediaTinder",
+          setupTitle: "Pick source and destination folders",
+          setupTxt: "Source is scanned lazily for old HDD performance. Destination receives real-time copies on Match.",
+          sourceBtn: "Select Source (HDD)",
+          targetBtn: "Select Destination (Saved)",
+          sourceReady: "Source ready",
+          targetReady: "Destination ready",
+          startBtn: "Start",
           pass: "Pass",
           match: "Match",
           export: "Export",
-          noImages: "No supported images found in this folder tree.",
-          doneTitle: "Session complete",
-          doneTxt: "You can export selected photos or open another folder.",
-          openOther: "Open Another Folder",
+          openNew: "Open New Folders",
+          doneTitle: "Review complete",
+          doneTxt: "You can export selected items as ZIP backup or pick folders again.",
+          noneTitle: "No valid media found",
+          noneTxt: "Files under 50KB and ignored system directories were skipped.",
           progress: "{seen} seen • {match} match",
+          pathLabel: "Current",
+          copying: "Copying...",
+          copied: "Saved",
+          copyErr: "Copy failed",
           exporting: "Building ZIP...",
-          exportName: "saved_photos.zip",
-          exportEmpty: "No matches to export yet.",
-          unsupportedApi: "This browser does not support File System Access API.",
-          noZip: "JSZip is unavailable. Reload the page and try again.",
-          cannotResume: "Could not rebuild the previous state. Starting from root.",
-          actionHint: "Use keyboard arrows: left for pass, right for match."
+          exportName: "mediatinder_backup.zip",
+          exportEmpty: "No matched files to export.",
+          fsMissing: "This browser does not support File System Access API.",
+          zipMissing: "JSZip is unavailable.",
+          hint: "Keyboard: Left Arrow = Pass, Right Arrow = Match",
+          mediaLoad: "Loading media...",
+          srcNeed: "Please select both source and destination folders.",
+          selSource: "Source folder selected",
+          selTarget: "Destination folder selected"
         },
         pt: {
-          appTitle: "Organizador de Fotos",
-          pickTitle: "Escolhe uma pasta para iniciar a triagem",
-          pickTxt: "A leitura começa de imediato e percorre subpastas apenas quando necessário. Ideal para HDDs lentos.",
-          pickBtn: "Abrir Pasta",
-          resumeTxt: "Foi encontrada uma sessão anterior. Escolhe a mesma pasta para retomar.",
+          title: "MediaTinder",
+          setupTitle: "Escolhe as pastas de origem e destino",
+          setupTxt: "A origem é lida de forma lazy para HDD antigo. O destino recebe cópias em tempo real no Match.",
+          sourceBtn: "Selecionar Origem (HDD)",
+          targetBtn: "Selecionar Destino (Salvos)",
+          sourceReady: "Origem pronta",
+          targetReady: "Destino pronto",
+          startBtn: "Iniciar",
           pass: "Passar",
           match: "Match",
           export: "Exportar",
-          noImages: "Nenhuma imagem suportada foi encontrada nesta árvore de pastas.",
+          openNew: "Abrir Novas Pastas",
           doneTitle: "Triagem concluída",
-          doneTxt: "Podes exportar as fotos selecionadas ou abrir outra pasta.",
-          openOther: "Abrir Outra Pasta",
-          progress: "{seen} vistas • {match} match",
+          doneTxt: "Podes exportar os selecionados em ZIP ou escolher novas pastas.",
+          noneTitle: "Nenhum ficheiro válido encontrado",
+          noneTxt: "Ficheiros abaixo de 50KB e pastas de sistema foram ignorados.",
+          progress: "{seen} vistos • {match} match",
+          pathLabel: "Atual",
+          copying: "A copiar...",
+          copied: "Guardado",
+          copyErr: "Falha ao copiar",
           exporting: "A criar ZIP...",
-          exportName: "triagem_salvados.zip",
-          exportEmpty: "Ainda não há imagens marcadas como match.",
-          unsupportedApi: "Este navegador não suporta a File System Access API.",
-          noZip: "JSZip indisponível. Recarrega a página e tenta novamente.",
-          cannotResume: "Não foi possível reconstruir o estado anterior. A iniciar da raiz.",
-          actionHint: "Atalhos: seta esquerda para passar, seta direita para match."
+          exportName: "mediatinder_backup.zip",
+          exportEmpty: "Não há ficheiros match para exportar.",
+          fsMissing: "Este navegador não suporta File System Access API.",
+          zipMissing: "JSZip indisponível.",
+          hint: "Teclado: Seta Esquerda = Passar, Seta Direita = Match",
+          mediaLoad: "A carregar média...",
+          srcNeed: "Seleciona as pastas de origem e destino.",
+          selSource: "Pasta de origem selecionada",
+          selTarget: "Pasta de destino selecionada"
         },
         fr: {
-          appTitle: "Organisateur Photo",
-          pickTitle: "Choisissez un dossier pour démarrer le tri",
-          pickTxt: "Le scan démarre instantanément et explore les sous-dossiers à la demande. Idéal pour un HDD lent.",
-          pickBtn: "Ouvrir Dossier",
-          resumeTxt: "Une session précédente a été trouvée. Choisissez le même dossier pour reprendre.",
+          title: "MediaTinder",
+          setupTitle: "Choisissez les dossiers source et destination",
+          setupTxt: "La source est scannée en lazy pour les HDD lents. La destination reçoit une copie en temps réel sur Match.",
+          sourceBtn: "Choisir Source (HDD)",
+          targetBtn: "Choisir Destination (Sauvegardés)",
+          sourceReady: "Source prête",
+          targetReady: "Destination prête",
+          startBtn: "Démarrer",
           pass: "Passer",
           match: "Match",
           export: "Exporter",
-          noImages: "Aucune image prise en charge dans cette arborescence.",
-          doneTitle: "Session terminée",
-          doneTxt: "Vous pouvez exporter les photos sélectionnées ou ouvrir un autre dossier.",
-          openOther: "Ouvrir un autre dossier",
-          progress: "{seen} vues • {match} match",
+          openNew: "Ouvrir de nouveaux dossiers",
+          doneTitle: "Tri terminé",
+          doneTxt: "Vous pouvez exporter les éléments en ZIP ou choisir d'autres dossiers.",
+          noneTitle: "Aucun média valide trouvé",
+          noneTxt: "Les fichiers sous 50KB et les dossiers système ont été ignorés.",
+          progress: "{seen} vus • {match} match",
+          pathLabel: "Actuel",
+          copying: "Copie...",
+          copied: "Sauvé",
+          copyErr: "Échec de copie",
           exporting: "Création du ZIP...",
-          exportName: "photos_selectionnees.zip",
-          exportEmpty: "Aucun match à exporter pour le moment.",
-          unsupportedApi: "Ce navigateur ne prend pas en charge la File System Access API.",
-          noZip: "JSZip indisponible. Rechargez la page et réessayez.",
-          cannotResume: "Impossible de restaurer l'état précédent. Reprise depuis la racine.",
-          actionHint: "Raccourcis: flèche gauche pour passer, flèche droite pour match."
+          exportName: "mediatinder_backup.zip",
+          exportEmpty: "Aucun fichier match à exporter.",
+          fsMissing: "Ce navigateur ne supporte pas File System Access API.",
+          zipMissing: "JSZip indisponible.",
+          hint: "Clavier: Flèche gauche = Passer, Flèche droite = Match",
+          mediaLoad: "Chargement du média...",
+          srcNeed: "Sélectionnez les dossiers source et destination.",
+          selSource: "Dossier source sélectionné",
+          selTarget: "Dossier destination sélectionné"
         },
         es: {
-          appTitle: "Organizador de Fotos",
-          pickTitle: "Elige una carpeta para iniciar la selección",
-          pickTxt: "El escaneo empieza al instante y recorre subcarpetas solo cuando hace falta. Ideal para HDDs lentos.",
-          pickBtn: "Abrir Carpeta",
-          resumeTxt: "Se encontró una sesión anterior. Elige la misma carpeta para continuar.",
+          title: "MediaTinder",
+          setupTitle: "Elige carpetas de origen y destino",
+          setupTxt: "El origen se escanea en modo lazy para HDD lentos. El destino recibe copias en tiempo real con Match.",
+          sourceBtn: "Seleccionar Origen (HDD)",
+          targetBtn: "Seleccionar Destino (Guardados)",
+          sourceReady: "Origen listo",
+          targetReady: "Destino listo",
+          startBtn: "Iniciar",
           pass: "Pasar",
           match: "Match",
           export: "Exportar",
-          noImages: "No se encontraron imágenes compatibles en este árbol de carpetas.",
-          doneTitle: "Sesión completada",
-          doneTxt: "Puedes exportar las fotos seleccionadas o abrir otra carpeta.",
-          openOther: "Abrir Otra Carpeta",
-          progress: "{seen} vistas • {match} match",
+          openNew: "Abrir Nuevas Carpetas",
+          doneTitle: "Revisión completada",
+          doneTxt: "Puedes exportar los seleccionados en ZIP o elegir nuevas carpetas.",
+          noneTitle: "No se encontraron medios válidos",
+          noneTxt: "Se ignoraron archivos menores a 50KB y carpetas de sistema.",
+          progress: "{seen} vistos • {match} match",
+          pathLabel: "Actual",
+          copying: "Copiando...",
+          copied: "Guardado",
+          copyErr: "Error de copia",
           exporting: "Creando ZIP...",
-          exportName: "seleccion_guardadas.zip",
-          exportEmpty: "Todavía no hay imágenes marcadas como match.",
-          unsupportedApi: "Este navegador no soporta File System Access API.",
-          noZip: "JSZip no está disponible. Recarga la página e inténtalo de nuevo.",
-          cannotResume: "No se pudo reconstruir el estado anterior. Reiniciando desde la raíz.",
-          actionHint: "Atajos: flecha izquierda para pasar, flecha derecha para match."
+          exportName: "mediatinder_backup.zip",
+          exportEmpty: "No hay archivos match para exportar.",
+          fsMissing: "Este navegador no soporta File System Access API.",
+          zipMissing: "JSZip no disponible.",
+          hint: "Teclado: Flecha izquierda = Pasar, Flecha derecha = Match",
+          mediaLoad: "Cargando medio...",
+          srcNeed: "Selecciona origen y destino.",
+          selSource: "Carpeta origen seleccionada",
+          selTarget: "Carpeta destino seleccionada"
         }
       };
 
       const $ = {
         board: document.getElementById("board"),
+        controls: document.getElementById("controls"),
         counter: document.getElementById("counter"),
-        actions: document.getElementById("actions"),
         btnPass: document.getElementById("btnPass"),
         btnMatch: document.getElementById("btnMatch"),
         btnExport: document.getElementById("btnExport"),
-        lang: document.getElementById("lang")
+        lang: document.getElementById("lang"),
+        verTag: document.getElementById("verTag")
       };
 
-      const state = {
+      const st = {
         lang: detectLang(),
-        root: null,
+        source: null,
+        target: null,
         stack: [],
-        queue: [],
         gen: null,
-        fillInFlight: null,
-        matched: [],
+        queue: [],
+        fillJob: null,
         seen: 0,
-        processing: false,
+        matched: [],
         exhausted: false,
-        lastProcessed: null,
-        ready: false
+        busy: false,
+        ready: false,
+        lastPath: "",
+        copyState: ""
       };
 
       function detectLang() {
@@ -528,47 +293,39 @@
         return "en";
       }
 
-      function t(k, vars = {}) {
-        const base = dict[state.lang] || dict.en;
-        const fallback = dict.en;
-        let txt = base[k] || fallback[k] || k;
-        for (const [name, val] of Object.entries(vars)) {
-          txt = txt.replace(`{${name}}`, String(val));
-        }
-        return txt;
+      function t(key, vars = {}) {
+        const pack = I18N[st.lang] || I18N.en;
+        const base = pack[key] || I18N.en[key] || key;
+        return Object.keys(vars).reduce((acc, k) => acc.replace(`{${k}}`, String(vars[k])), base);
       }
 
-      function relJoin(base, seg) {
-        return base ? `${base}/${seg}` : seg;
-      }
-
-      function extOf(name) {
+      function ext(name) {
         const i = name.lastIndexOf(".");
         return i < 0 ? "" : name.slice(i + 1).toLowerCase();
       }
 
-      function isImage(name) {
-        return IMG_EXT.has(extOf(name));
+      function mediaKind(name) {
+        const e = ext(name);
+        if (IMG_EXT.has(e)) return "image";
+        if (VID_EXT.has(e)) return "video";
+        return "";
       }
 
-      function shouldSkipPath(rel) {
+      function joinRel(base, seg) {
+        return base ? `${base}/${seg}` : seg;
+      }
+
+      function shouldSkip(rel) {
         const p = `/${String(rel || "").toLowerCase()}/`;
         return SKIP_DIRS.some((d) => p.includes(`/${d}/`));
       }
 
-      function snapshot() {
-        return {
-          lang: state.lang,
-          stackRel: state.stack.map((n) => n.rel),
-          matched: state.matched.slice(),
-          seen: state.seen,
-          exhausted: state.exhausted,
-          lastProcessed: state.lastProcessed
-        };
+      function setVersionTag() {
+        $.verTag.textContent = `${APP_VERSION} • ${APP_COMMIT}`;
       }
 
       function persist() {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot()));
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({ lang: st.lang, seen: st.seen, matched: st.matched }));
       }
 
       function restore() {
@@ -580,210 +337,8 @@
         }
       }
 
-      async function resolveDir(root, rel) {
-        if (!rel) return root;
-        const parts = rel.split("/").filter(Boolean);
-        let cur = root;
-        for (const p of parts) {
-          cur = await cur.getDirectoryHandle(p);
-        }
-        return cur;
-      }
-
-      async function rebuildStack(root, rels) {
-        const out = [];
-        for (const rel of rels) {
-          try {
-            const handle = await resolveDir(root, rel);
-            out.push({ rel, handle });
-          } catch {
-          }
-        }
-        if (!out.length) {
-          out.push({ rel: "", handle: root });
-        }
-        return out;
-      }
-
-      async function* scanImages(runtime) {
-        while (runtime.stack.length) {
-          const node = runtime.stack.pop();
-          persist();
-          for await (const [name, handle] of node.handle.entries()) {
-            if (handle.kind === "directory") {
-              const dirRel = relJoin(node.rel, name);
-              if (shouldSkipPath(dirRel)) continue;
-              runtime.stack.push({ rel: dirRel, handle });
-              continue;
-            }
-            if (isImage(name)) {
-              const fileRel = relJoin(node.rel, name);
-              if (shouldSkipPath(fileRel)) continue;
-              yield { path: fileRel, handle };
-            }
-          }
-        }
-      }
-
-      async function fillQueue(target = BUFFER_TARGET) {
-        if (!state.gen || state.exhausted) return;
-        while (state.queue.length < target && !state.exhausted) {
-          const { value, done } = await state.gen.next();
-          if (done) {
-            state.exhausted = true;
-            persist();
-            break;
-          }
-          try {
-            const file = await value.handle.getFile();
-            if (file.size < MIN_BYTES) continue;
-            const url = URL.createObjectURL(file);
-            state.queue.push({ path: value.path, file, url });
-          } catch {
-          }
-        }
-      }
-
-      function topUpQueue(target = BUFFER_TARGET) {
-        if (state.fillInFlight) return state.fillInFlight;
-        state.fillInFlight = (async () => {
-          try {
-            await fillQueue(target);
-          } finally {
-            state.fillInFlight = null;
-            if (state.ready && !state.exhausted && state.queue.length < target) {
-              queueMicrotask(() => topUpQueue(target));
-            }
-          }
-        })();
-        return state.fillInFlight;
-      }
-
-      function releaseItem(item) {
-        if (!item) return;
-        try {
-          URL.revokeObjectURL(item.url);
-        } catch {
-        }
-      }
-
-      function releaseAllQueue() {
-        for (const item of state.queue) releaseItem(item);
-        state.queue = [];
-      }
-
-      function uiPicker(saved) {
-        const supportsFs = typeof window.showDirectoryPicker === "function";
-        const msg = !supportsFs
-          ? t("unsupportedApi")
-          : saved
-            ? `${t("resumeTxt")} ${t("actionHint")}`
-            : `${t("pickTxt")} ${t("actionHint")}`;
-
-        $.board.innerHTML = `
-          <div class="picker">
-            <h1 class="title">${t("pickTitle")}</h1>
-            <p class="txt">${msg}</p>
-            <div>
-              <button id="btnPick" type="button" ${supportsFs ? "" : "disabled"}>${t("pickBtn")}</button>
-            </div>
-          </div>
-        `;
-
-        $.actions.classList.add("hide");
-        const $btnPick = document.getElementById("btnPick");
-        if ($btnPick) {
-          $btnPick.addEventListener("click", () => startPick(saved));
-        }
-      }
-
-      function uiEmpty() {
-        $.board.innerHTML = `
-          <div class="empty">
-            <h1 class="title">${t("noImages")}</h1>
-            <p class="txt">${t("pickTxt")}</p>
-            <div>
-              <button id="btnNew" type="button">${t("openOther")}</button>
-            </div>
-          </div>
-        `;
-        $.actions.classList.add("hide");
-        const $btnNew = document.getElementById("btnNew");
-        if ($btnNew) {
-          $btnNew.addEventListener("click", () => resetSession(false));
-        }
-      }
-
-      function uiDone() {
-        $.board.innerHTML = `
-          <div class="empty">
-            <h1 class="title">${t("doneTitle")}</h1>
-            <p class="txt">${t("doneTxt")}</p>
-            <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
-              <button id="btnDoneExport" type="button">${t("export")}</button>
-              <button id="btnDoneNew" type="button">${t("openOther")}</button>
-            </div>
-          </div>
-        `;
-        $.actions.classList.add("hide");
-        const $exp = document.getElementById("btnDoneExport");
-        const $new = document.getElementById("btnDoneNew");
-        if ($exp) $exp.addEventListener("click", exportZip);
-        if ($new) $new.addEventListener("click", () => resetSession(false));
-      }
-
-      function renderCard() {
-        const head = state.queue[0];
-        if (!head) {
-          if (state.exhausted) uiDone();
-          else uiEmpty();
-          updateCounter();
-          return;
-        }
-
-        $.board.innerHTML = `
-          <div class="card-shell">
-            <article id="card" class="card">
-              <span class="badge pass">${t("pass")}</span>
-              <span class="badge match">${t("match")}</span>
-              <img id="activeImg" class="img-pending" src="${head.url}" alt="${head.path.replace(/"/g, "")}" draggable="false" />
-              <div id="loaderLayer" class="loader-layer">
-                <div class="skeleton"></div>
-                <div class="relative z-10 flex items-center justify-center">
-                  <span class="h-11 w-11 rounded-full border-4 border-zinc-600 border-t-sky-400 animate-spin"></span>
-                </div>
-              </div>
-            </article>
-          </div>
-        `;
-
-        const $img = document.getElementById("activeImg");
-        const $loader = document.getElementById("loaderLayer");
-        if ($img && $loader) {
-          const releaseLoader = () => {
-            $img.classList.remove("img-pending");
-            $loader.classList.add("is-hidden");
-            setTimeout(() => {
-              if ($loader && $loader.parentNode) $loader.remove();
-            }, 180);
-          };
-
-          $img.onload = () => {
-            releaseLoader();
-          };
-
-          $img.onerror = () => {
-            autoSkipBroken(head.path);
-          };
-        }
-
-        topUpQueue(BUFFER_TARGET);
-        $.actions.classList.remove("hide");
-        updateCounter();
-      }
-
-      function updateTextsOnly() {
-        document.title = t("appTitle");
+      function updateStaticTexts() {
+        document.title = t("title");
         $.btnPass.textContent = t("pass");
         $.btnMatch.textContent = t("match");
         $.btnExport.textContent = t("export");
@@ -791,128 +346,356 @@
       }
 
       function updateCounter() {
-        $.counter.textContent = t("progress", {
-          seen: state.seen,
-          match: state.matched.length
-        });
+        $.counter.textContent = t("progress", { seen: st.seen, match: st.matched.length });
       }
 
-      async function startPick(saved) {
+      async function resolveDir(root, rel) {
+        if (!rel) return root;
+        const parts = rel.split("/").filter(Boolean);
+        let dir = root;
+        for (const p of parts) dir = await dir.getDirectoryHandle(p);
+        return dir;
+      }
+
+      async function getFileByPath(root, rel) {
+        const i = rel.lastIndexOf("/");
+        const dirRel = i < 0 ? "" : rel.slice(0, i);
+        const name = i < 0 ? rel : rel.slice(i + 1);
+        const dir = await resolveDir(root, dirRel);
+        const handle = await dir.getFileHandle(name);
+        return handle.getFile();
+      }
+
+      async function copyToTarget(item) {
+        if (!st.target) return;
+        st.copyState = t("copying");
+        updatePathLabel();
         try {
-          const root = await window.showDirectoryPicker({ mode: "read" });
-          await bootstrap(root, saved);
+          const file = item.file || await item.handle.getFile();
+          const out = await st.target.getFileHandle(file.name, { create: true });
+          const writable = await out.createWritable();
+          await writable.write(file);
+          await writable.close();
+          st.copyState = t("copied");
         } catch {
+          st.copyState = t("copyErr");
         }
+        updatePathLabel();
       }
 
-      async function bootstrap(root, saved) {
-        state.root = root;
-        state.queue = [];
-        state.fillInFlight = null;
-        state.processing = false;
-        state.exhausted = false;
-
-        let stackRel = [""];
-        state.matched = [];
-        state.seen = 0;
-        state.lastProcessed = null;
-
-        if (saved) {
-          state.matched = Array.isArray(saved.matched) ? saved.matched.filter(Boolean) : [];
-          state.seen = Number(saved.seen) || 0;
-          state.lastProcessed = saved.lastProcessed || null;
-          if (Array.isArray(saved.stackRel) && saved.stackRel.length) {
-            stackRel = saved.stackRel;
+      async function* walkMedia(ctx) {
+        while (ctx.stack.length) {
+          const node = ctx.stack.pop();
+          for await (const [name, handle] of node.handle.entries()) {
+            const rel = joinRel(node.rel, name);
+            if (shouldSkip(rel)) continue;
+            if (handle.kind === "directory") {
+              ctx.stack.push({ rel, handle });
+              continue;
+            }
+            const kind = mediaKind(name);
+            if (!kind) continue;
+            yield { rel, handle, kind };
           }
         }
-
-        try {
-          state.stack = await rebuildStack(root, stackRel);
-        } catch {
-          state.stack = [{ rel: "", handle: root }];
-          alert(t("cannotResume"));
-        }
-
-        state.gen = scanImages(state);
-        await fillQueue(1);
-        state.ready = true;
-
-        if (!state.queue.length && state.exhausted) {
-          uiEmpty();
-        } else {
-          renderCard();
-          topUpQueue(BUFFER_TARGET);
-        }
-        persist();
       }
 
-      function move(dir) {
-        if (!state.ready || state.processing || !state.queue.length) return;
-        state.processing = true;
+      async function fillQueue(target = BUFFER_SIZE) {
+        if (!st.gen || st.exhausted) return;
+        while (st.queue.length < target && !st.exhausted) {
+          const next = await st.gen.next();
+          if (next.done) {
+            st.exhausted = true;
+            break;
+          }
+          const item = next.value;
+          try {
+            const file = await item.handle.getFile();
+            if (file.size < MIN_BYTES) continue;
+            const url = URL.createObjectURL(file);
+            st.queue.push({ ...item, file, url });
+          } catch {
+          }
+        }
+      }
 
-        const top = state.queue[0];
-        const card = document.getElementById("card");
-        if (!card) {
-          state.processing = false;
+      function maintainQueue(target = BUFFER_SIZE) {
+        if (st.fillJob) return st.fillJob;
+        st.fillJob = (async () => {
+          try {
+            await fillQueue(target);
+          } finally {
+            st.fillJob = null;
+            if (st.ready && !st.exhausted && st.queue.length < target) queueMicrotask(() => maintainQueue(target));
+          }
+        })();
+        return st.fillJob;
+      }
+
+      function releaseItem(item) {
+        if (!item || !item.url) return;
+        try {
+          URL.revokeObjectURL(item.url);
+        } catch {
+        }
+      }
+
+      function releaseQueue() {
+        for (const item of st.queue) releaseItem(item);
+        st.queue = [];
+      }
+
+      function hideControls() {
+        $.controls.classList.add("hidden");
+      }
+
+      function showControls() {
+        $.controls.classList.remove("hidden");
+      }
+
+      function setupScreen() {
+        const fsOk = typeof window.showDirectoryPicker === "function";
+        $.board.innerHTML = `
+          <div class="w-full max-w-2xl rounded-2xl border border-zinc-800 bg-zinc-900/80 p-6 sm:p-7 shadow-2xl">
+            <h1 class="text-lg sm:text-xl font-semibold text-zinc-100">${t("setupTitle")}</h1>
+            <p class="mt-2 text-sm text-zinc-400 leading-relaxed">${fsOk ? t("setupTxt") : t("fsMissing")}</p>
+            <p class="mt-2 text-xs text-zinc-500">${t("hint")}</p>
+            <div class="mt-5 grid gap-3 sm:grid-cols-2">
+              <button id="pickSource" type="button" ${fsOk ? "" : "disabled"} class="rounded-xl border border-zinc-700 bg-zinc-950 hover:bg-zinc-800 px-4 py-2.5 text-sm font-medium disabled:opacity-50">${t("sourceBtn")}</button>
+              <button id="pickTarget" type="button" ${fsOk ? "" : "disabled"} class="rounded-xl border border-zinc-700 bg-zinc-950 hover:bg-zinc-800 px-4 py-2.5 text-sm font-medium disabled:opacity-50">${t("targetBtn")}</button>
+            </div>
+            <div class="mt-3 text-xs text-zinc-500 space-y-1">
+              <div id="sourceState">-</div>
+              <div id="targetState">-</div>
+            </div>
+            <div class="mt-5">
+              <button id="startFlow" type="button" ${fsOk ? "" : "disabled"} class="rounded-xl border border-sky-800/80 bg-sky-950/40 hover:bg-sky-900/30 px-4 py-2.5 text-sm font-semibold disabled:opacity-50">${t("startBtn")}</button>
+            </div>
+          </div>
+        `;
+
+        hideControls();
+
+        const sourceState = document.getElementById("sourceState");
+        const targetState = document.getElementById("targetState");
+        const refreshSetupState = () => {
+          sourceState.textContent = st.source ? `• ${t("selSource")}` : "-";
+          targetState.textContent = st.target ? `• ${t("selTarget")}` : "-";
+        };
+
+        document.getElementById("pickSource").addEventListener("click", async () => {
+          try {
+            st.source = await window.showDirectoryPicker({ mode: "read" });
+          } catch {
+          }
+          refreshSetupState();
+        });
+
+        document.getElementById("pickTarget").addEventListener("click", async () => {
+          try {
+            st.target = await window.showDirectoryPicker({ mode: "readwrite" });
+          } catch {
+          }
+          refreshSetupState();
+        });
+
+        document.getElementById("startFlow").addEventListener("click", () => {
+          if (!st.source || !st.target) {
+            alert(t("srcNeed"));
+            return;
+          }
+          bootstrapFlow();
+        });
+
+        refreshSetupState();
+      }
+
+      function doneScreen() {
+        $.board.innerHTML = `
+          <div class="w-full max-w-2xl rounded-2xl border border-zinc-800 bg-zinc-900/80 p-6 sm:p-7 shadow-2xl text-center">
+            <h2 class="text-lg sm:text-xl font-semibold">${t("doneTitle")}</h2>
+            <p class="mt-2 text-sm text-zinc-400">${t("doneTxt")}</p>
+            <div class="mt-5 flex flex-wrap items-center justify-center gap-3">
+              <button id="doneExport" type="button" class="rounded-xl border border-zinc-700 bg-zinc-950 hover:bg-zinc-800 px-4 py-2.5 text-sm font-medium">${t("export")}</button>
+              <button id="doneReset" type="button" class="rounded-xl border border-zinc-700 bg-zinc-950 hover:bg-zinc-800 px-4 py-2.5 text-sm font-medium">${t("openNew")}</button>
+            </div>
+          </div>
+        `;
+        hideControls();
+        document.getElementById("doneExport").addEventListener("click", exportZip);
+        document.getElementById("doneReset").addEventListener("click", resetAll);
+      }
+
+      function noneScreen() {
+        $.board.innerHTML = `
+          <div class="w-full max-w-2xl rounded-2xl border border-zinc-800 bg-zinc-900/80 p-6 sm:p-7 shadow-2xl text-center">
+            <h2 class="text-lg sm:text-xl font-semibold">${t("noneTitle")}</h2>
+            <p class="mt-2 text-sm text-zinc-400">${t("noneTxt")}</p>
+            <div class="mt-5">
+              <button id="noneReset" type="button" class="rounded-xl border border-zinc-700 bg-zinc-950 hover:bg-zinc-800 px-4 py-2.5 text-sm font-medium">${t("openNew")}</button>
+            </div>
+          </div>
+        `;
+        hideControls();
+        document.getElementById("noneReset").addEventListener("click", resetAll);
+      }
+
+      function cardHtml(item) {
+        const media = item.kind === "video"
+          ? `<video id="activeMedia" class="w-full h-full object-contain media-pending" src="${item.url}" controls autoplay muted playsinline preload="metadata"></video>`
+          : `<img id="activeMedia" class="w-full h-full object-contain media-pending" src="${item.url}" alt="${item.rel.replace(/"/g, "")}" draggable="false" />`;
+
+        return `
+          <div class="card-shell w-full h-full max-h-[78vh] max-w-5xl">
+            <article id="card" class="card relative w-full h-full rounded-2xl border border-zinc-700 bg-zinc-900/85 overflow-hidden shadow-2xl">
+              ${media}
+              <div id="loader" class="absolute inset-0 grid place-items-center bg-zinc-950/46 backdrop-blur-[1px]">
+                <div class="absolute w-[88%] h-[72%] rounded-xl border border-zinc-700 skeleton"></div>
+                <div class="relative z-10 flex flex-col items-center gap-3">
+                  <span class="h-11 w-11 rounded-full border-4 border-zinc-600 border-t-sky-400 animate-spin"></span>
+                  <span class="text-[11px] uppercase tracking-[0.12em] text-zinc-300">${t("mediaLoad")}</span>
+                </div>
+              </div>
+              <div class="absolute left-3 right-3 bottom-3 rounded-lg border border-zinc-700/80 bg-zinc-950/78 px-3 py-2 backdrop-blur-sm">
+                <div class="text-[10px] uppercase tracking-[0.12em] text-zinc-400">${t("pathLabel")}</div>
+                <div id="pathTxt" class="truncate-middle text-xs text-zinc-200" title="${item.rel.replace(/"/g, "")}">${item.rel}</div>
+                <div id="copyState" class="mt-0.5 text-[10px] text-zinc-500">${st.copyState || ""}</div>
+              </div>
+            </article>
+          </div>
+        `;
+      }
+
+      function updatePathLabel() {
+        const pathTxt = document.getElementById("pathTxt");
+        const copyTxt = document.getElementById("copyState");
+        if (pathTxt) {
+          pathTxt.textContent = st.lastPath || "";
+          pathTxt.title = st.lastPath || "";
+        }
+        if (copyTxt) copyTxt.textContent = st.copyState || "";
+      }
+
+      function bindMediaEvents(item) {
+        const media = document.getElementById("activeMedia");
+        const loader = document.getElementById("loader");
+        if (!media) return;
+
+        const reveal = () => {
+          media.classList.remove("media-pending");
+          media.classList.add("media-ready");
+          if (loader) {
+            loader.classList.add("opacity-0");
+            setTimeout(() => {
+              if (loader && loader.parentNode) loader.remove();
+            }, 180);
+          }
+        };
+
+        const fail = () => autoSkipBroken(item.rel);
+
+        if (item.kind === "video") {
+          media.addEventListener("loadeddata", reveal, { once: true });
+          media.addEventListener("error", fail, { once: true });
+        } else {
+          media.addEventListener("load", reveal, { once: true });
+          media.addEventListener("error", fail, { once: true });
+        }
+      }
+
+      function renderCard() {
+        const item = st.queue[0];
+        if (!item) {
+          if (st.exhausted) doneScreen();
+          else noneScreen();
+          updateCounter();
           return;
         }
 
-        card.classList.add(dir === MOVE_PASS ? "is-pass" : "is-match");
-
-        const done = async () => {
-          if (dir === MOVE_MATCH) {
-            state.matched.push(top.path);
-          }
-
-          state.seen += 1;
-          state.lastProcessed = top.path;
-
-          releaseItem(state.queue.shift());
-          persist();
-
-          await fillQueue(BUFFER_TARGET);
-          renderCard();
-          state.processing = false;
-        };
-
-        card.addEventListener("animationend", done, { once: true });
+        st.lastPath = item.rel;
+        $.board.innerHTML = cardHtml(item);
+        showControls();
+        updateCounter();
+        updatePathLabel();
+        bindMediaEvents(item);
+        maintainQueue(BUFFER_SIZE);
       }
 
-      async function autoSkipBroken(expectedPath) {
-        if (state.processing || !state.ready || !state.queue.length) return;
-        const head = state.queue[0];
-        if (!head || head.path !== expectedPath) return;
+      async function bootstrapFlow() {
+        releaseQueue();
+        st.stack = [{ rel: "", handle: st.source }];
+        st.gen = walkMedia(st);
+        st.fillJob = null;
+        st.ready = true;
+        st.exhausted = false;
+        st.busy = false;
+        st.seen = 0;
+        st.matched = [];
+        st.lastPath = "";
+        st.copyState = "";
+        updateCounter();
 
-        state.processing = true;
-        releaseItem(state.queue.shift());
-        state.lastProcessed = expectedPath;
-        persist();
+        await fillQueue(1);
+        if (!st.queue.length && st.exhausted) {
+          noneScreen();
+          return;
+        }
 
-        await fillQueue(BUFFER_TARGET);
         renderCard();
-        state.processing = false;
+        maintainQueue(BUFFER_SIZE);
       }
 
-      function pathParentAndName(rel) {
-        const i = rel.lastIndexOf("/");
-        if (i < 0) return { dir: "", name: rel };
-        return { dir: rel.slice(0, i), name: rel.slice(i + 1) };
+      async function autoSkipBroken(expectedRel) {
+        if (!st.ready || st.busy || !st.queue.length) return;
+        const head = st.queue[0];
+        if (!head || head.rel !== expectedRel) return;
+
+        st.busy = true;
+        st.lastPath = head.rel;
+        releaseItem(st.queue.shift());
+        await fillQueue(BUFFER_SIZE);
+        renderCard();
+        st.busy = false;
       }
 
-      async function getFileByRel(rel) {
-        const { dir, name } = pathParentAndName(rel);
-        const parent = await resolveDir(state.root, dir);
-        const fileHandle = await parent.getFileHandle(name);
-        return fileHandle.getFile();
+      async function swipe(kind) {
+        if (!st.ready || st.busy || !st.queue.length) return;
+
+        st.busy = true;
+        const head = st.queue[0];
+        const card = document.getElementById("card");
+        if (!card) {
+          st.busy = false;
+          return;
+        }
+
+        if (kind === MATCH) {
+          st.matched.push(head.rel);
+          await copyToTarget(head);
+        } else {
+          st.copyState = "";
+        }
+
+        card.classList.add(kind === MATCH ? "out-match" : "out-pass");
+
+        setTimeout(async () => {
+          st.seen += 1;
+          st.lastPath = head.rel;
+          releaseItem(st.queue.shift());
+          persist();
+          await fillQueue(BUFFER_SIZE);
+          renderCard();
+          st.busy = false;
+        }, 230);
       }
 
       async function exportZip() {
-        if (!state.matched.length) {
+        if (!st.matched.length) {
           alert(t("exportEmpty"));
           return;
         }
         if (!window.JSZip) {
-          alert(t("noZip"));
+          alert(t("zipMissing"));
           return;
         }
 
@@ -922,27 +705,28 @@
 
         try {
           const zip = new JSZip();
-          const used = new Map();
+          const seen = new Map();
 
-          for (const rel of state.matched) {
+          for (const rel of st.matched) {
             try {
-              const file = await getFileByRel(rel);
-              const fileName = rel.split("/").pop() || "image";
-              let saveName = fileName;
-              const n = used.get(fileName) || 0;
-              if (n > 0) {
-                const dot = fileName.lastIndexOf(".");
-                const b = dot > 0 ? fileName.slice(0, dot) : fileName;
-                const e = dot > 0 ? fileName.slice(dot) : "";
-                saveName = `${b}_${n}${e}`;
-              }
-              used.set(fileName, n + 1);
-              zip.file(saveName, file);
+              const file = await getFileByPath(st.source, rel);
+              const base = rel.split("/").pop() || "media";
+              const idx = seen.get(base) || 0;
+              seen.set(base, idx + 1);
+              const name = idx === 0
+                ? base
+                : `${base.slice(0, base.lastIndexOf(".")) || base}_${idx}${base.includes(".") ? "." + base.split(".").pop() : ""}`;
+              zip.file(name, file);
             } catch {
             }
           }
 
-          const blob = await zip.generateAsync({ type: "blob", compression: "DEFLATE", compressionOptions: { level: 4 } });
+          const blob = await zip.generateAsync({
+            type: "blob",
+            compression: "DEFLATE",
+            compressionOptions: { level: 4 }
+          });
+
           const url = URL.createObjectURL(blob);
           const a = document.createElement("a");
           a.href = url;
@@ -957,83 +741,62 @@
         }
       }
 
-      function resetSession(preserveLang) {
-        releaseAllQueue();
-        localStorage.removeItem(STORAGE_KEY);
-
-        state.root = null;
-        state.stack = [];
-        state.queue = [];
-        state.gen = null;
-        state.fillInFlight = null;
-        state.matched = [];
-        state.seen = 0;
-        state.processing = false;
-        state.exhausted = false;
-        state.lastProcessed = null;
-        state.ready = false;
-
-        if (!preserveLang) {
-          state.lang = state.lang || detectLang();
-        }
-
-        uiPicker(null);
-        updateTextsOnly();
+      function resetAll() {
+        releaseQueue();
+        st.source = null;
+        st.target = null;
+        st.stack = [];
+        st.gen = null;
+        st.fillJob = null;
+        st.ready = false;
+        st.exhausted = false;
+        st.busy = false;
+        st.seen = 0;
+        st.matched = [];
+        st.lastPath = "";
+        st.copyState = "";
+        persist();
+        updateCounter();
+        setupScreen();
       }
 
-      function refreshCurrentView(savedState) {
-        updateTextsOnly();
-        if (!state.ready) {
-          uiPicker(savedState);
-          return;
-        }
-        const hasCurrent = Boolean(state.queue[0]);
-        if (hasCurrent) {
-          renderCard();
-          return;
-        }
-        if (state.exhausted) uiDone();
-        else uiEmpty();
-      }
-
-      function bindEvents() {
-        $.btnPass.addEventListener("click", () => move(MOVE_PASS));
-        $.btnMatch.addEventListener("click", () => move(MOVE_MATCH));
+      function bindCoreEvents() {
+        $.btnPass.addEventListener("click", () => swipe(PASS));
+        $.btnMatch.addEventListener("click", () => swipe(MATCH));
         $.btnExport.addEventListener("click", exportZip);
 
         document.addEventListener("keydown", (ev) => {
-          if (!state.ready) return;
-          const tag = document.activeElement?.tagName;
-          if (tag === "INPUT" || tag === "SELECT" || tag === "TEXTAREA") return;
+          if (!st.ready) return;
+          const tag = document.activeElement?.tagName || "";
+          if (["INPUT", "SELECT", "TEXTAREA"].includes(tag)) return;
           if (ev.key === "ArrowLeft") {
             ev.preventDefault();
-            move(MOVE_PASS);
-          } else if (ev.key === "ArrowRight") {
+            swipe(PASS);
+          }
+          if (ev.key === "ArrowRight") {
             ev.preventDefault();
-            move(MOVE_MATCH);
+            swipe(MATCH);
           }
         });
 
         $.lang.addEventListener("change", () => {
-          state.lang = $.lang.value in dict ? $.lang.value : "en";
-          const snap = restore() || {};
-          snap.lang = state.lang;
-          localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...snapshot(), ...snap }));
-          refreshCurrentView(snap);
+          st.lang = $.lang.value in I18N ? $.lang.value : "en";
+          persist();
+          updateStaticTexts();
+          if (!st.ready) setupScreen();
+          else renderCard();
         });
       }
 
       function init() {
-        bindEvents();
+        const snap = restore();
+        if (snap && snap.lang && snap.lang in I18N) st.lang = snap.lang;
+        $.lang.value = st.lang;
 
-        const saved = restore();
-        if (saved && saved.lang && saved.lang in dict) {
-          state.lang = saved.lang;
-        }
-        $.lang.value = state.lang;
-
-        updateTextsOnly();
-        uiPicker(saved);
+        setVersionTag();
+        updateStaticTexts();
+        bindCoreEvents();
+        setupScreen();
       }
 
       window.addEventListener("beforeunload", persist);
