@@ -9,54 +9,32 @@
   <style>
     :root {
       color-scheme: dark;
+      --bg: #09090b;
+      --panel: #111113;
+      --panel-2: #17171b;
+      --line: #27272a;
+      --text: #f4f4f5;
+      --muted: #a1a1aa;
+      --pass: #ef4444;
+      --match: #22c55e;
+      --accent: #38bdf8;
+      --split: 28vw;
     }
 
-    html,
-    body {
+    html, body {
       margin: 0;
       width: 100%;
       height: 100%;
-      background:
-        radial-gradient(130% 90% at 0% 0%, rgba(63, 63, 70, 0.16), transparent 58%),
-        radial-gradient(140% 90% at 100% 100%, rgba(39, 39, 42, 0.23), transparent 62%),
-        #09090b;
-      font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
       overflow: hidden;
-    }
-
-    .card {
-      transition: transform 220ms ease, opacity 220ms ease, border-color 180ms ease;
-      will-change: transform, opacity;
-    }
-
-    .card.out-pass {
-      border-color: rgba(248, 113, 113, 0.95);
-      transform: translateX(-52vw) rotate(-13deg) scale(0.95);
-      opacity: 0;
-    }
-
-    .card.out-match {
-      border-color: rgba(74, 222, 128, 0.95);
-      transform: translateX(52vw) rotate(13deg) scale(0.95);
-      opacity: 0;
-    }
-
-    .media-pending {
-      opacity: 0;
-    }
-
-    .media-ready {
-      opacity: 1;
-      transition: opacity 170ms ease;
-    }
-
-    .skeleton {
       background:
-        linear-gradient(110deg, rgba(39, 39, 42, 0.34) 8%, rgba(82, 82, 91, 0.24) 18%, rgba(39, 39, 42, 0.34) 33%),
-        rgba(24, 24, 27, 0.74);
-      background-size: 200% 100%;
-      animation: wave 1.15s linear infinite;
+        radial-gradient(120% 90% at 0% 0%, rgba(63,63,70,.16), transparent 58%),
+        radial-gradient(120% 90% at 100% 100%, rgba(39,39,42,.24), transparent 62%),
+        var(--bg);
+      color: var(--text);
+      font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
     }
+
+    * { box-sizing: border-box; }
 
     .path-cut {
       display: block;
@@ -68,27 +46,66 @@
       text-align: left;
     }
 
-    @keyframes wave {
-      from {
-        background-position-x: 180%;
-      }
-      to {
-        background-position-x: -20%;
-      }
+    .media-pending { opacity: 0; }
+    .media-ready { opacity: 1; transition: opacity 180ms ease; }
+
+    .card {
+      transition: transform 220ms ease, opacity 220ms ease, border-color 180ms ease, box-shadow 180ms ease;
+      will-change: transform, opacity;
     }
 
-    @media (max-width: 980px) {
-      .layout-main {
-        grid-template-columns: 1fr;
-      }
+    .card.out-pass {
+      border-color: rgba(248, 113, 113, .95);
+      box-shadow: 0 0 0 1px rgba(248, 113, 113, .15);
+      transform: translateX(-52vw) rotate(-12deg) scale(.95);
+      opacity: 0;
+    }
 
-      .tree-panel {
-        height: 34vh;
-      }
+    .card.out-match {
+      border-color: rgba(74, 222, 128, .95);
+      box-shadow: 0 0 0 1px rgba(74, 222, 128, .15);
+      transform: translateX(52vw) rotate(12deg) scale(.95);
+      opacity: 0;
+    }
+
+    .skeleton {
+      background:
+        linear-gradient(110deg, rgba(39,39,42,.36) 8%, rgba(82,82,91,.24) 18%, rgba(39,39,42,.36) 33%),
+        rgba(24,24,27,.74);
+      background-size: 200% 100%;
+      animation: wave 1.15s linear infinite;
+    }
+
+    @keyframes wave {
+      from { background-position-x: 180%; }
+      to { background-position-x: -20%; }
+    }
+
+    .split-handle {
+      width: 10px;
+      cursor: col-resize;
+      background: linear-gradient(180deg, rgba(39,39,42,.2), rgba(39,39,42,.85), rgba(39,39,42,.2));
+    }
+
+    .tree-scroll {
+      scrollbar-color: rgba(63,63,70,.8) transparent;
+      scrollbar-width: thin;
+    }
+
+    .tree-scroll::-webkit-scrollbar { width: 10px; }
+    .tree-scroll::-webkit-scrollbar-thumb { background: rgba(63,63,70,.75); border-radius: 999px; }
+    .tree-scroll::-webkit-scrollbar-track { background: transparent; }
+
+    .tree-node {
+      --pad: 0px;
+    }
+
+    .tree-node > .row {
+      padding-left: var(--pad);
     }
   </style>
 </head>
-<body class="bg-zinc-950 text-zinc-100">
+<body>
   <main class="h-full w-full grid grid-rows-[auto_1fr_auto] gap-2 p-3 sm:p-4">
     <header class="w-full flex items-center justify-between gap-3">
       <div id="counter" class="text-[11px] sm:text-xs uppercase tracking-[0.12em] text-zinc-400 border border-zinc-700/80 bg-zinc-900/80 rounded-full px-3 py-1.5">0</div>
@@ -102,21 +119,21 @@
       </div>
     </header>
 
-    <div class="layout-main grid grid-cols-[minmax(0,1fr)_minmax(280px,25vw)] gap-3 min-h-0">
-      <section id="stage" class="min-h-0 rounded-2xl border border-zinc-800 bg-zinc-900/65"></section>
-
-      <aside class="tree-panel min-h-0 rounded-2xl border border-zinc-800 bg-zinc-900/70 flex flex-col overflow-hidden">
+    <div id="split" class="min-h-0 grid gap-3" style="grid-template-columns: minmax(0, 1fr) 10px var(--split);">
+      <section id="player" class="min-h-0 rounded-2xl border border-zinc-800 bg-zinc-900/65 overflow-hidden"></section>
+      <div id="splitHandle" class="split-handle rounded-full border border-zinc-800/70"></div>
+      <aside class="min-h-0 rounded-2xl border border-zinc-800 bg-zinc-900/70 flex flex-col overflow-hidden">
         <div class="px-3 py-2 border-b border-zinc-800 flex items-center justify-between gap-2">
           <h2 id="treeTitle" class="text-xs uppercase tracking-[0.12em] text-zinc-400">Folders</h2>
           <span id="treeCount" class="text-[10px] text-zinc-500">0</span>
         </div>
-        <div id="tree" class="flex-1 overflow-y-auto px-2 py-2 space-y-1"></div>
+        <div id="tree" class="tree-scroll flex-1 overflow-y-auto px-2 py-2"></div>
       </aside>
     </div>
 
     <footer class="w-full flex items-center justify-between gap-2">
-      <div id="versionTag" class="text-[10px] text-zinc-500 border border-zinc-800 bg-zinc-900/70 rounded-md px-2 py-1">Script Version: 2.0.0</div>
-      <div id="controls" class="flex items-center justify-center gap-2">
+      <div id="versionTag" class="text-[10px] text-zinc-500 border border-zinc-800 bg-zinc-900/70 rounded-md px-2 py-1">Script Version: 2.3.0</div>
+      <div class="flex items-center justify-center gap-2">
         <button id="btnExport" type="button" class="min-w-[90px] rounded-xl border border-zinc-700 bg-zinc-900 hover:bg-zinc-800 px-4 py-2 text-sm font-medium">Export</button>
         <button id="btnPass" type="button" class="min-w-[98px] rounded-xl border border-red-900/70 bg-zinc-900 hover:bg-zinc-800 px-4 py-2 text-sm font-semibold">Pass</button>
         <button id="btnMatch" type="button" class="min-w-[98px] rounded-xl border border-emerald-900/70 bg-zinc-900 hover:bg-zinc-800 px-4 py-2 text-sm font-semibold">Match</button>
@@ -126,22 +143,22 @@
 
   <script>
     (() => {
-      const KEY = "mediatinder-v200";
-      const SCRIPT_VERSION = "2.0.0";
-      const BUF_AHEAD = 20;
-      const BUF_SIZE = BUF_AHEAD + 1;
+      const KEY = "mediatinder-v230";
+      const VER = "2.3.0";
       const MIN_BYTES = 50 * 1024;
+      const TIMEOUT_MS = 5000;
       const IMG_EXT = new Set(["jpg", "jpeg", "png", "webp"]);
       const VID_EXT = new Set(["mp4", "mov", "webm"]);
       const SYS_DIRS = ["windows", "program files", "appdata", "node_modules"];
+      const DEFAULT_SPLIT = 28;
 
       const I18n = {
         lang: "en",
         dict: {
           en: {
             title: "MediaTinder",
-            setupTitle: "Pick source and destination",
-            setupTxt: "Source is scanned lazily for slow HDDs. Match copies files instantly to destination.",
+            setupTitle: "Pick source and destination folders",
+            setupTxt: "Source is scanned lazily for slow HDDs. Match copies instantly to destination.",
             pickSrc: "Select Source",
             pickDst: "Select Destination",
             start: "Start",
@@ -149,7 +166,6 @@
             dstMissing: "Destination not selected",
             srcLabel: "Source",
             dstLabel: "Destination",
-            pathLabel: "Current",
             pass: "Pass",
             match: "Match",
             export: "Export",
@@ -159,24 +175,28 @@
             emptyTitle: "No valid media found",
             emptyTxt: "System paths and files below 50KB were ignored.",
             progress: "{seen} seen • {match} match",
+            loading: "Loading media...",
             copyBusy: "Copying...",
             copyOk: "Saved",
             copyFail: "Copy failed",
-            loading: "Loading media...",
             needBoth: "Please select both source and destination.",
             treeTitle: "Folders",
             ignore: "Ignore",
             ignored: "Ignored",
+            ignoredTip: "Ignored subtree",
             exporting: "Building ZIP...",
             exportName: "mediatinder_backup.zip",
             exportEmpty: "No matched files to export.",
             fsMissing: "File System Access API is not available in this browser.",
-            zipMissing: "JSZip is unavailable."
+            zipMissing: "JSZip is unavailable.",
+            metaDate: "Date",
+            sourceReady: "Source",
+            targetReady: "Destination"
           },
           pt: {
             title: "MediaTinder",
-            setupTitle: "Seleciona origem e destino",
-            setupTxt: "A origem é lida de forma lazy para HDD lento. Match copia na hora para o destino.",
+            setupTitle: "Seleciona as pastas de origem e destino",
+            setupTxt: "A origem é lida de forma lazy para HDD lento. Match copia imediatamente para o destino.",
             pickSrc: "Selecionar Origem",
             pickDst: "Selecionar Destino",
             start: "Iniciar",
@@ -184,7 +204,6 @@
             dstMissing: "Destino não selecionado",
             srcLabel: "Origem",
             dstLabel: "Destino",
-            pathLabel: "Atual",
             pass: "Passar",
             match: "Match",
             export: "Exportar",
@@ -194,24 +213,28 @@
             emptyTitle: "Nenhum ficheiro válido encontrado",
             emptyTxt: "Caminhos de sistema e ficheiros abaixo de 50KB foram ignorados.",
             progress: "{seen} vistos • {match} match",
+            loading: "A carregar média...",
             copyBusy: "A copiar...",
             copyOk: "Guardado",
             copyFail: "Falha ao copiar",
-            loading: "A carregar média...",
             needBoth: "Seleciona origem e destino.",
             treeTitle: "Pastas",
             ignore: "Ignorar",
             ignored: "Ignorada",
+            ignoredTip: "Subárvore ignorada",
             exporting: "A criar ZIP...",
             exportName: "mediatinder_backup.zip",
             exportEmpty: "Não há match para exportar.",
             fsMissing: "A File System Access API não está disponível neste navegador.",
-            zipMissing: "JSZip indisponível."
+            zipMissing: "JSZip indisponível.",
+            metaDate: "Data",
+            sourceReady: "Origem",
+            targetReady: "Destino"
           },
           fr: {
             title: "MediaTinder",
-            setupTitle: "Choisissez source et destination",
-            setupTxt: "La source est lue en lazy pour les HDD lents. Match copie en direct vers la destination.",
+            setupTitle: "Choisissez les dossiers source et destination",
+            setupTxt: "La source est lue en lazy pour les HDD lents. Match copie immédiatement vers la destination.",
             pickSrc: "Choisir Source",
             pickDst: "Choisir Destination",
             start: "Démarrer",
@@ -219,7 +242,6 @@
             dstMissing: "Destination non sélectionnée",
             srcLabel: "Source",
             dstLabel: "Destination",
-            pathLabel: "Actuel",
             pass: "Passer",
             match: "Match",
             export: "Exporter",
@@ -229,24 +251,28 @@
             emptyTitle: "Aucun média valide trouvé",
             emptyTxt: "Les chemins système et fichiers sous 50KB ont été ignorés.",
             progress: "{seen} vus • {match} match",
+            loading: "Chargement média...",
             copyBusy: "Copie...",
             copyOk: "Sauvé",
             copyFail: "Échec copie",
-            loading: "Chargement média...",
             needBoth: "Sélectionnez source et destination.",
             treeTitle: "Dossiers",
             ignore: "Ignorer",
             ignored: "Ignoré",
+            ignoredTip: "Sous-arbre ignoré",
             exporting: "Création ZIP...",
             exportName: "mediatinder_backup.zip",
             exportEmpty: "Aucun match à exporter.",
             fsMissing: "File System Access API indisponible dans ce navigateur.",
-            zipMissing: "JSZip indisponible."
+            zipMissing: "JSZip indisponible.",
+            metaDate: "Date",
+            sourceReady: "Source",
+            targetReady: "Destination"
           },
           es: {
             title: "MediaTinder",
-            setupTitle: "Selecciona origen y destino",
-            setupTxt: "El origen se lee en lazy para HDD lento. Match copia en tiempo real al destino.",
+            setupTitle: "Selecciona las carpetas de origen y destino",
+            setupTxt: "El origen se lee en modo lazy para HDD lento. Match copia de inmediato al destino.",
             pickSrc: "Seleccionar Origen",
             pickDst: "Seleccionar Destino",
             start: "Iniciar",
@@ -254,7 +280,6 @@
             dstMissing: "Destino no seleccionado",
             srcLabel: "Origen",
             dstLabel: "Destino",
-            pathLabel: "Actual",
             pass: "Pasar",
             match: "Match",
             export: "Exportar",
@@ -264,26 +289,30 @@
             emptyTitle: "No se encontró media válida",
             emptyTxt: "Se ignoraron rutas de sistema y archivos menores a 50KB.",
             progress: "{seen} vistos • {match} match",
+            loading: "Cargando media...",
             copyBusy: "Copiando...",
             copyOk: "Guardado",
             copyFail: "Error al copiar",
-            loading: "Cargando media...",
             needBoth: "Selecciona origen y destino.",
             treeTitle: "Carpetas",
             ignore: "Ignorar",
             ignored: "Ignorada",
+            ignoredTip: "Subárbol ignorado",
             exporting: "Creando ZIP...",
             exportName: "mediatinder_backup.zip",
             exportEmpty: "No hay match para exportar.",
             fsMissing: "File System Access API no disponible en este navegador.",
-            zipMissing: "JSZip no disponible."
+            zipMissing: "JSZip no disponible.",
+            metaDate: "Fecha",
+            sourceReady: "Origen",
+            targetReady: "Destino"
           }
         },
         detect() {
-          const s = String(navigator.language || "en").toLowerCase();
-          if (s.startsWith("pt")) return "pt";
-          if (s.startsWith("fr")) return "fr";
-          if (s.startsWith("es")) return "es";
+          const raw = String(navigator.language || "en").toLowerCase();
+          if (raw.startsWith("pt")) return "pt";
+          if (raw.startsWith("fr")) return "fr";
+          if (raw.startsWith("es")) return "es";
           return "en";
         },
         t(key, vars = {}) {
@@ -295,7 +324,17 @@
       };
 
       const Scanner = {
-        skipSystem(rel) {
+        ext(name) {
+          const i = name.lastIndexOf(".");
+          return i < 0 ? "" : name.slice(i + 1).toLowerCase();
+        },
+        kind(name) {
+          const e = this.ext(name);
+          if (IMG_EXT.has(e)) return "image";
+          if (VID_EXT.has(e)) return "video";
+          return "";
+        },
+        sys(rel) {
           const p = `/${String(rel || "").toLowerCase()}/`;
           return SYS_DIRS.some((d) => p.includes(`/${d}/`));
         },
@@ -307,31 +346,21 @@
           }
           return false;
         },
-        ext(name) {
-          const i = name.lastIndexOf(".");
-          return i < 0 ? "" : name.slice(i + 1).toLowerCase();
-        },
-        kind(name) {
-          const e = this.ext(name);
-          if (IMG_EXT.has(e)) return "image";
-          if (VID_EXT.has(e)) return "video";
-          return "";
-        },
         async *walk(ctx) {
           while (ctx.stack.length) {
             const node = ctx.stack.pop();
-            if (this.blocked(node.rel, ctx.blacklist) || this.skipSystem(node.rel)) continue;
-            if (node.rel) ctx.onDir(node.rel);
+            if (this.sys(node.rel) || this.blocked(node.rel, ctx.blacklist)) continue;
+            if (node.rel) ctx.onDir(node.rel, node.parentRel);
 
-            // Blacklist is checked before every item to abort traversal immediately for ignored paths.
+            // Blacklist is checked before every entry so ignored subtrees stop immediately.
             for await (const [name, hdl] of node.hdl.entries()) {
-              if (this.blocked(node.rel, ctx.blacklist) || this.skipSystem(node.rel)) break;
+              if (this.sys(node.rel) || this.blocked(node.rel, ctx.blacklist)) break;
               const rel = node.rel ? `${node.rel}/${name}` : name;
-              if (this.blocked(rel, ctx.blacklist) || this.skipSystem(rel)) continue;
+              if (this.sys(rel) || this.blocked(rel, ctx.blacklist)) continue;
 
               if (hdl.kind === "directory") {
-                ctx.onDir(rel);
-                ctx.stack.push({ rel, hdl });
+                ctx.onDir(rel, node.rel);
+                ctx.stack.push({ rel, hdl, parentRel: node.rel });
                 continue;
               }
 
@@ -345,17 +374,18 @@
 
       const App = {
         el: {
-          stage: document.getElementById("stage"),
+          counter: document.getElementById("counter"),
+          lang: document.getElementById("lang"),
+          player: document.getElementById("player"),
           tree: document.getElementById("tree"),
           treeTitle: document.getElementById("treeTitle"),
           treeCount: document.getElementById("treeCount"),
-          counter: document.getElementById("counter"),
-          controls: document.getElementById("controls"),
+          versionTag: document.getElementById("versionTag"),
+          btnExport: document.getElementById("btnExport"),
           btnPass: document.getElementById("btnPass"),
           btnMatch: document.getElementById("btnMatch"),
-          btnExport: document.getElementById("btnExport"),
-          lang: document.getElementById("lang"),
-          versionTag: document.getElementById("versionTag")
+          split: document.getElementById("split"),
+          splitHandle: document.getElementById("splitHandle")
         },
         st: {
           src: null,
@@ -375,7 +405,12 @@
           copyMsg: "",
           blacklist: new Set(),
           tree: new Map(),
-          treeTick: false
+          open: new Set([""]),
+          nodeMap: new Map(),
+          treeTick: false,
+          buf: 15,
+          split: DEFAULT_SPLIT,
+          treeRoots: []
         },
 
         save() {
@@ -385,7 +420,10 @@
             matched: this.st.matched,
             blacklist: Array.from(this.st.blacklist),
             srcName: this.st.srcName,
-            dstName: this.st.dstName
+            dstName: this.st.dstName,
+            split: this.st.split,
+            open: Array.from(this.st.open),
+            treeOpen: Array.from(this.st.nodeMap.entries()).filter(([, n]) => n.open).map(([rel]) => rel)
           }));
         },
 
@@ -398,101 +436,171 @@
             if (Array.isArray(data.blacklist)) this.st.blacklist = new Set(data.blacklist.map((x) => String(x).toLowerCase()));
             if (typeof data.srcName === "string") this.st.srcName = data.srcName;
             if (typeof data.dstName === "string") this.st.dstName = data.dstName;
+            if (Array.isArray(data.open)) this.st.open = new Set(data.open);
+            if (typeof data.split === "number") this.st.split = data.split;
           } catch {
           }
         },
 
-        showControls(on) {
-          this.el.controls.classList.toggle("hidden", !on);
+        adaptBuf() {
+          const mem = Number(navigator.deviceMemory || 0);
+          const cores = Number(navigator.hardwareConcurrency || 0);
+          if ((mem && mem < 4) || (cores && cores <= 4)) return 5;
+          if ((mem && mem > 8) || (cores && cores >= 12)) return 40;
+          return 15;
+        },
+
+        titleFromHandle(hdl) {
+          return hdl?.name || "";
+        },
+
+        fmtDate(dt) {
+          if (!dt) return "-";
+          try {
+            return new Intl.DateTimeFormat(I18n.lang, { year: "numeric", month: "short", day: "2-digit" }).format(dt);
+          } catch {
+            return new Date(dt).toLocaleDateString();
+          }
+        },
+
+        splitToCss() {
+          const left = Math.max(30, Math.min(75, this.st.split));
+          const right = 100 - left;
+          this.el.split.style.gridTemplateColumns = `minmax(0, ${left}vw) 10px minmax(280px, ${right}vw)`;
+          this.el.split.style.setProperty("--split", `${right}vw`);
+        },
+
+        persistSplit(px) {
+          const w = window.innerWidth || 1;
+          this.st.split = Math.max(30, Math.min(75, Math.round((px / w) * 100)));
+          this.save();
+          this.splitToCss();
         },
 
         release(item) {
           if (!item?.url) return;
-          try {
-            URL.revokeObjectURL(item.url);
-          } catch {
-          }
+          try { URL.revokeObjectURL(item.url); } catch {}
         },
 
-        releaseAll() {
+        releaseQueue() {
           for (const item of this.st.queue) this.release(item);
           this.st.queue = [];
         },
 
-        markDir(rel) {
-          if (!rel || this.st.tree.has(rel)) return;
-          const depth = rel.split("/").length - 1;
-          const name = rel.split("/").pop() || rel;
-          this.st.tree.set(rel, { rel, name, depth });
-          this.scheduleTree();
+        blocked(rel) {
+          return Scanner.sys(rel) || Scanner.blocked(rel, this.st.blacklist);
         },
 
-        scheduleTree() {
-          if (this.st.treeTick) return;
-          this.st.treeTick = true;
-          requestAnimationFrame(() => {
-            this.st.treeTick = false;
-            this.renderTree();
-          });
+        queueTreeNode(rel, parentRel, hdl) {
+          if (this.st.nodeMap.has(rel)) return this.st.nodeMap.get(rel);
+          const depth = rel ? rel.split("/").length - 1 : 0;
+          const node = {
+            rel,
+            name: hdl?.name || rel.split("/").pop() || rel || "/",
+            parentRel: parentRel || "",
+            depth,
+            open: this.st.open.has(rel),
+            children: [],
+            ignored: this.blocked(rel)
+          };
+          this.st.nodeMap.set(rel, node);
+          if (parentRel && this.st.nodeMap.has(parentRel)) this.st.nodeMap.get(parentRel).children.push(rel);
+          return node;
         },
 
         renderTree() {
-          const rows = Array.from(this.st.tree.values()).sort((a, b) => a.rel.localeCompare(b.rel, undefined, { sensitivity: "base" }));
-          this.el.treeCount.textContent = String(rows.length);
+          const roots = Array.from(this.st.nodeMap.values()).filter((n) => !n.parentRel);
+          roots.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
+          this.st.treeRoots = roots.map((n) => n.rel);
+          this.el.treeCount.textContent = String(this.st.nodeMap.size);
 
-          if (!rows.length) {
+          if (!roots.length) {
             this.el.tree.innerHTML = '<div class="text-xs text-zinc-600 px-2 py-1">-</div>';
             return;
           }
 
-          this.el.tree.innerHTML = rows.map((d) => {
-            const ignored = Scanner.blocked(d.rel, this.st.blacklist);
-            const pad = 8 + (d.depth * 12);
-            return `
-              <div class="rounded-lg border ${ignored ? "border-zinc-800 bg-zinc-900/30" : "border-zinc-800/80 bg-zinc-900/55"} p-2">
-                <div class="flex items-center gap-2" style="padding-left:${pad}px">
-                  <span class="flex-1 text-xs ${ignored ? "text-zinc-500 line-through" : "text-zinc-300"} path-cut" title="${d.rel.replace(/"/g, "")}">${d.name}</span>
-                  <button data-ignore="${d.rel.replace(/"/g, "")}" class="text-[10px] px-2 py-0.5 rounded-md border ${ignored ? "border-zinc-700 text-zinc-500" : "border-amber-700/80 text-amber-300 hover:bg-amber-950/35"}">${ignored ? I18n.t("ignored") : I18n.t("ignore")}</button>
-                </div>
-              </div>
-            `;
-          }).join("");
+          const rows = [];
+          const walk = (rel) => {
+            const n = this.st.nodeMap.get(rel);
+            if (!n) return;
+            rows.push(this.treeRow(n));
+            if (!n.open) return;
+            const kids = n.children.slice().sort((a, b) => (this.st.nodeMap.get(a)?.name || "").localeCompare(this.st.nodeMap.get(b)?.name || "", undefined, { sensitivity: "base" }));
+            for (const k of kids) walk(k);
+          };
 
+          for (const root of roots) walk(root.rel);
+          this.el.tree.innerHTML = rows.join("");
+
+          this.el.tree.querySelectorAll("button[data-toggle]").forEach((btn) => {
+            btn.addEventListener("click", () => this.toggleNode(btn.getAttribute("data-toggle") || ""));
+          });
           this.el.tree.querySelectorAll("button[data-ignore]").forEach((btn) => {
-            btn.addEventListener("click", () => {
-              const rel = String(btn.getAttribute("data-ignore") || "").toLowerCase();
-              this.ignore(rel);
-            });
+            btn.addEventListener("click", () => this.ignoreNode(btn.getAttribute("data-ignore") || ""));
           });
         },
 
-        ignore(rel) {
+        treeRow(n) {
+          const hasKids = (n.children || []).length > 0;
+          const indent = 10 + (n.depth * 14);
+          const muted = n.ignored ? "text-zinc-500 line-through" : "text-zinc-300";
+          const badge = n.ignored ? `<span class="text-[10px] uppercase tracking-[0.08em] text-amber-300 border border-amber-700/70 rounded-full px-2 py-0.5">${I18n.t("ignoredTip")}</span>` : "";
+          return `
+            <div class="tree-node rounded-lg border ${n.ignored ? "border-zinc-800 bg-zinc-900/30" : "border-zinc-800/80 bg-zinc-900/55"} p-2 mb-1" style="--pad:${indent}px">
+              <div class="row flex items-center gap-2">
+                <button data-toggle="${n.rel.replace(/"/g, "")}" class="shrink-0 w-6 h-6 rounded-md border border-zinc-700/80 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 text-xs">${n.open ? "−" : "+"}</button>
+                <span class="flex-1 text-xs ${muted} path-cut" title="${n.rel.replace(/"/g, "")}">${n.name || "/"}</span>
+                ${badge}
+                <button data-ignore="${n.rel.replace(/"/g, "")}" class="text-[10px] px-2 py-0.5 rounded-md border ${n.ignored ? "border-zinc-700 text-zinc-500" : "border-amber-700/80 text-amber-300 hover:bg-amber-950/35"}">${n.ignored ? I18n.t("ignored") : I18n.t("ignore")}</button>
+              </div>
+              ${hasKids ? '' : '<div class="h-0"></div>'}
+            </div>
+          `;
+        },
+
+        toggleNode(rel) {
+          const node = this.st.nodeMap.get(rel);
+          if (!node) return;
+          node.open = !node.open;
+          if (node.open) this.st.open.add(rel);
+          else this.st.open.delete(rel);
+          this.save();
+          this.renderTree();
+        },
+
+        ignoreNode(rel) {
           if (!rel) return;
-          this.st.blacklist.add(rel);
+          this.st.blacklist.add(rel.toLowerCase());
+          this.clearFromQueue(rel);
+          const node = this.st.nodeMap.get(rel);
+          if (node) node.ignored = true;
+          this.save();
+          this.renderTree();
+          if (this.st.queue[0] && this.blocked(this.st.queue[0].rel)) this.skipCurrent();
+        },
+
+        clearFromQueue(rel) {
+          const low = rel.toLowerCase();
           this.st.queue = this.st.queue.filter((item, idx) => {
-            if (!Scanner.blocked(item.rel, this.st.blacklist)) return true;
-            if (idx === 0 && this.st.ready) return true;
+            const bad = item.rel.toLowerCase() === low || item.rel.toLowerCase().startsWith(`${low}/`);
+            if (!bad) return true;
+            if (idx === 0) return true;
             this.release(item);
             return false;
           });
-          this.save();
-          this.renderTree();
-          if (this.st.queue[0] && Scanner.blocked(this.st.queue[0].rel, this.st.blacklist)) this.skipCurrent();
         },
 
         uiSetup() {
           const fsOk = typeof window.showDirectoryPicker === "function";
           this.showControls(false);
-
           const srcBadge = this.st.srcName
             ? `<span class="inline-flex items-center rounded-full border border-amber-700/80 bg-amber-950/35 text-amber-200 text-xs px-2 py-1">${I18n.t("srcLabel")}: ${this.st.srcName}</span>`
             : `<span class="inline-flex items-center rounded-full border border-zinc-700 bg-zinc-900 text-zinc-400 text-xs px-2 py-1">${I18n.t("srcMissing")}</span>`;
-
           const dstBadge = this.st.dstName
             ? `<span class="inline-flex items-center rounded-full border border-emerald-700/80 bg-emerald-950/30 text-emerald-200 text-xs px-2 py-1">${I18n.t("dstLabel")}: ${this.st.dstName}</span>`
             : `<span class="inline-flex items-center rounded-full border border-zinc-700 bg-zinc-900 text-zinc-400 text-xs px-2 py-1">${I18n.t("dstMissing")}</span>`;
 
-          this.el.stage.innerHTML = `
+          this.el.player.innerHTML = `
             <div class="h-full w-full grid place-items-center p-4 sm:p-6">
               <div class="w-full max-w-2xl rounded-2xl border border-zinc-800 bg-zinc-900/80 p-6 sm:p-7 shadow-2xl">
                 <h1 class="text-lg sm:text-xl font-semibold text-zinc-100">${I18n.t("setupTitle")}</h1>
@@ -512,33 +620,27 @@
             </div>
           `;
 
-          this.el.treeTitle.textContent = I18n.t("treeTitle");
-
-          const pickSrc = document.getElementById("pickSrc");
-          const pickDst = document.getElementById("pickDst");
-          const startBtn = document.getElementById("startBtn");
-
-          pickSrc?.addEventListener("click", async () => {
+          document.getElementById("pickSrc")?.addEventListener("click", async () => {
             try {
               this.st.src = await window.showDirectoryPicker({ mode: "read" });
-              this.st.srcName = this.st.src?.name || "";
+              this.st.srcName = this.titleFromHandle(this.st.src);
               this.save();
             } catch {
             }
             this.uiSetup();
           });
 
-          pickDst?.addEventListener("click", async () => {
+          document.getElementById("pickDst")?.addEventListener("click", async () => {
             try {
               this.st.dst = await window.showDirectoryPicker({ mode: "readwrite" });
-              this.st.dstName = this.st.dst?.name || "";
+              this.st.dstName = this.titleFromHandle(this.st.dst);
               this.save();
             } catch {
             }
             this.uiSetup();
           });
 
-          startBtn?.addEventListener("click", () => {
+          document.getElementById("startBtn")?.addEventListener("click", () => {
             if (!this.st.src || !this.st.dst) {
               alert(I18n.t("needBoth"));
               return;
@@ -551,7 +653,7 @@
 
         uiEmpty() {
           this.showControls(false);
-          this.el.stage.innerHTML = `
+          this.el.player.innerHTML = `
             <div class="h-full w-full grid place-items-center p-4">
               <div class="w-full max-w-2xl rounded-2xl border border-zinc-800 bg-zinc-900/80 p-6 sm:p-7 shadow-2xl text-center">
                 <h2 class="text-lg sm:text-xl font-semibold">${I18n.t("emptyTitle")}</h2>
@@ -567,7 +669,7 @@
 
         uiDone() {
           this.showControls(false);
-          this.el.stage.innerHTML = `
+          this.el.player.innerHTML = `
             <div class="h-full w-full grid place-items-center p-4">
               <div class="w-full max-w-2xl rounded-2xl border border-zinc-800 bg-zinc-900/80 p-6 sm:p-7 shadow-2xl text-center">
                 <h2 class="text-lg sm:text-xl font-semibold">${I18n.t("doneTitle")}</h2>
@@ -600,8 +702,11 @@
                       <span class="text-[11px] uppercase tracking-[0.12em] text-zinc-300">${I18n.t("loading")}</span>
                     </div>
                   </div>
-                  <div class="absolute left-3 right-3 bottom-3 rounded-lg border border-zinc-700/80 bg-zinc-950/78 px-3 py-2 backdrop-blur-sm">
-                    <div class="text-[10px] uppercase tracking-[0.12em] text-zinc-400">${I18n.t("pathLabel")}</div>
+                  <div class="absolute left-3 right-3 bottom-3 rounded-lg border border-zinc-700/80 bg-zinc-950/78 px-3 py-2 backdrop-blur-sm grid gap-1">
+                    <div class="flex items-center justify-between gap-2 text-[10px] uppercase tracking-[0.12em] text-zinc-400">
+                      <span>${I18n.t("pathLabel")}</span>
+                      <span id="metaDate" class="text-zinc-500"></span>
+                    </div>
                     <div id="pathText" class="path-cut text-xs text-zinc-200" title="${item.rel.replace(/"/g, "")}">${item.rel}</div>
                     <div id="copyText" class="mt-0.5 text-[10px] text-zinc-500">${this.st.copyMsg || ""}</div>
                   </div>
@@ -611,14 +716,30 @@
           `;
         },
 
-        updatePathMeta() {
+        updateMeta() {
           const p = document.getElementById("pathText");
           const c = document.getElementById("copyText");
+          const d = document.getElementById("metaDate");
           if (p) {
             p.textContent = this.st.path || "";
             p.title = this.st.path || "";
           }
           if (c) c.textContent = this.st.copyMsg || "";
+          if (d) d.textContent = this.st.metaDate || "";
+        },
+
+        timed(fn, ms = TIMEOUT_MS) {
+          let timer;
+          const time = new Promise((_, reject) => {
+            timer = setTimeout(() => reject(new Error("timeout")), ms);
+          });
+          return Promise.race([Promise.resolve().then(fn), time]).finally(() => clearTimeout(timer));
+        },
+
+        async fileInfo(item) {
+          const file = await this.timed(() => item.hdl.getFile());
+          if (file.size < MIN_BYTES) throw new Error("small");
+          return file;
         },
 
         bindMedia(item) {
@@ -626,24 +747,33 @@
           const loader = document.getElementById("loader");
           if (!media) return;
 
-          const show = () => {
+          let settled = false;
+          const done = () => {
+            if (settled) return;
+            settled = true;
             media.classList.remove("media-pending");
             media.classList.add("media-ready");
             if (loader) {
               loader.classList.add("opacity-0");
-              setTimeout(() => loader.remove(), 170);
+              setTimeout(() => loader.remove(), 160);
             }
           };
 
           const fail = () => this.skipCurrent(item.rel);
+          const ttl = setTimeout(() => { if (!settled) fail(); }, TIMEOUT_MS);
 
-          if (item.kind === "video") {
-            media.addEventListener("loadeddata", show, { once: true });
-            media.addEventListener("error", fail, { once: true });
-          } else {
-            media.addEventListener("load", show, { once: true });
-            media.addEventListener("error", fail, { once: true });
-          }
+          media.addEventListener(item.kind === "video" ? "loadeddata" : "load", () => { clearTimeout(ttl); done(); }, { once: true });
+          media.addEventListener("error", () => { clearTimeout(ttl); fail(); }, { once: true });
+        },
+
+        showControls(on) {
+          document.getElementById("btnExport").classList.toggle("hidden", !on);
+          document.getElementById("btnPass").classList.toggle("hidden", !on);
+          document.getElementById("btnMatch").classList.toggle("hidden", !on);
+        },
+
+        updateCounter() {
+          this.el.counter.textContent = I18n.t("progress", { seen: this.st.seen, match: this.st.matched.length });
         },
 
         renderCard() {
@@ -656,25 +786,19 @@
           }
 
           this.st.path = item.rel;
-          this.el.stage.innerHTML = this.mediaCard(item);
+          this.st.metaDate = item.date ? this.fmtDate(item.date) : "-";
+          this.el.player.innerHTML = this.mediaCard(item);
           this.showControls(true);
           this.updateCounter();
-          this.updatePathMeta();
+          this.updateMeta();
           this.bindMedia(item);
-          this.maintain(BUF_SIZE);
-        },
-
-        updateCounter() {
-          this.el.counter.textContent = I18n.t("progress", {
-            seen: this.st.seen,
-            match: this.st.matched.length
-          });
+          this.fill();
         },
 
         async copyMatch(item) {
           if (!this.st.dst) return;
           this.st.copyMsg = I18n.t("copyBusy");
-          this.updatePathMeta();
+          this.updateMeta();
 
           try {
             const file = item.file || await item.hdl.getFile();
@@ -687,10 +811,10 @@
             this.st.copyMsg = I18n.t("copyFail");
           }
 
-          this.updatePathMeta();
+          this.updateMeta();
         },
 
-        async fill(target = BUF_SIZE) {
+        async fill(target = this.st.buf + 1) {
           if (!this.st.gen || this.st.exhausted) return;
           while (this.st.queue.length < target && !this.st.exhausted) {
             const next = await this.st.gen.next();
@@ -700,27 +824,28 @@
             }
 
             const item = next.value;
-            if (Scanner.blocked(item.rel, this.st.blacklist)) continue;
+            if (this.blocked(item.rel)) continue;
 
             try {
-              const file = await item.hdl.getFile();
+              const file = await this.timed(() => item.hdl.getFile());
               if (file.size < MIN_BYTES) continue;
               const url = URL.createObjectURL(file);
-              this.st.queue.push({ ...item, file, url });
+              const date = file.lastModified ? new Date(file.lastModified) : null;
+              this.st.queue.push({ ...item, file, url, date });
             } catch {
             }
           }
         },
 
-        maintain(target = BUF_SIZE) {
+        maintain() {
           if (this.st.fillJob) return this.st.fillJob;
           this.st.fillJob = (async () => {
             try {
-              await this.fill(target);
+              await this.fill(this.st.buf + 1);
             } finally {
               this.st.fillJob = null;
-              if (this.st.ready && !this.st.exhausted && this.st.queue.length < target) {
-                queueMicrotask(() => this.maintain(target));
+              if (this.st.ready && !this.st.exhausted && this.st.queue.length < this.st.buf + 1) {
+                queueMicrotask(() => this.maintain());
               }
             }
           })();
@@ -736,7 +861,7 @@
           this.st.busy = true;
           this.st.path = head.rel;
           this.release(this.st.queue.shift());
-          await this.fill(BUF_SIZE);
+          await this.fill(this.st.buf + 1);
           this.renderCard();
           this.st.busy = false;
         },
@@ -766,7 +891,7 @@
             this.st.path = head.rel;
             this.release(this.st.queue.shift());
             this.save();
-            await this.fill(BUF_SIZE);
+            await this.fill(this.st.buf + 1);
             this.renderCard();
             this.st.busy = false;
           }, 220);
@@ -776,7 +901,6 @@
           const i = rel.lastIndexOf("/");
           const dirRel = i < 0 ? "" : rel.slice(0, i);
           const name = i < 0 ? rel : rel.slice(i + 1);
-
           let dir = this.st.src;
           if (!dir) throw new Error("no-src");
           if (dirRel) {
@@ -803,17 +927,16 @@
           try {
             const zip = new JSZip();
             const used = new Map();
-
             for (const rel of this.st.matched) {
               try {
                 const file = await this.resolveFile(rel);
-                const full = rel.split("/").pop() || "media";
-                const dot = full.lastIndexOf(".");
-                const stem = dot > 0 ? full.slice(0, dot) : full;
-                const ext = dot > 0 ? full.slice(dot) : "";
-                const n = used.get(full) || 0;
-                used.set(full, n + 1);
-                const name = n === 0 ? full : `${stem}_${n}${ext}`;
+                const base = rel.split("/").pop() || "media";
+                const n = used.get(base) || 0;
+                used.set(base, n + 1);
+                const dot = base.lastIndexOf(".");
+                const stem = dot > 0 ? base.slice(0, dot) : base;
+                const ext = dot > 0 ? base.slice(dot) : "";
+                const name = n === 0 ? base : `${stem}_${n}${ext}`;
                 zip.file(name, file);
               } catch {
               }
@@ -835,14 +958,14 @@
         },
 
         async start() {
-          this.releaseAll();
-          this.st.stack = [{ rel: "", hdl: this.st.src }];
-          this.st.tree.clear();
-          this.markDir("");
+          this.releaseQueue();
+          this.st.nodeMap.clear();
+          this.st.treeRoots = [];
+          this.st.stack = [{ rel: "", hdl: this.st.src, parentRel: "" }];
           this.st.gen = Scanner.walk({
             stack: this.st.stack,
             blacklist: this.st.blacklist,
-            onDir: (rel) => this.markDir(rel)
+            onDir: (rel, parentRel) => this.addNode(rel, parentRel)
           });
 
           this.st.fillJob = null;
@@ -853,92 +976,530 @@
           this.st.matched = [];
           this.st.path = "";
           this.st.copyMsg = "";
+          this.st.metaDate = "";
 
           this.updateCounter();
           await this.fill(1);
-
           if (!this.st.queue.length && this.st.exhausted) {
             this.uiEmpty();
             return;
           }
 
           this.renderCard();
-          this.maintain(BUF_SIZE);
+          this.maintain();
           this.save();
         },
 
-        reset() {
-          this.releaseAll();
-          this.st.src = null;
-          this.st.dst = null;
-          this.st.srcName = "";
-          this.st.dstName = "";
-          this.st.stack = [];
-          this.st.gen = null;
-          this.st.fillJob = null;
-          this.st.ready = false;
+        addNode(rel, parentRel) {
+          if (this.blocked(rel)) return;
+          if (this.st.nodeMap.has(rel)) return this.st.nodeMap.get(rel);
+          const node = {
+            rel,
+            parentRel: parentRel || "",
+            name: rel ? rel.split("/").pop() || rel : "/",
+            depth: rel ? rel.split("/").length - 1 : 0,
+            open: this.st.open.has(rel),
+            children: [],
+            ignored: this.blocked(rel)
+          };
+          this.st.nodeMap.set(rel, node);
+          if (parentRel && this.st.nodeMap.has(parentRel)) this.st.nodeMap.get(parentRel).children.push(rel);
+          this.scheduleTree();
+          return node;
+        },
+
+        scheduleTree() {
+          if (this.st.treeTick) return;
+          this.st.treeTick = true;
+          requestAnimationFrame(() => {
+            this.st.treeTick = false;
+            this.renderTree();
+          });
+        },
+
+        renderTree() {
+          const roots = Array.from(this.st.nodeMap.values()).filter((n) => !n.parentRel);
+          roots.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
+          this.el.treeCount.textContent = String(this.st.nodeMap.size);
+          if (!roots.length) {
+            this.el.tree.innerHTML = '<div class="text-xs text-zinc-600 px-2 py-1">-</div>';
+            return;
+          }
+
+          const out = [];
+          const walk = (rel) => {
+            const n = this.st.nodeMap.get(rel);
+            if (!n) return;
+            out.push(this.treeRow(n));
+            if (!n.open) return;
+            const kids = n.children.slice().sort((a, b) => (this.st.nodeMap.get(a)?.name || "").localeCompare(this.st.nodeMap.get(b)?.name || "", undefined, { sensitivity: "base" }));
+            for (const k of kids) walk(k);
+          };
+
+          for (const root of roots) walk(root.rel);
+          this.el.tree.innerHTML = out.join("");
+          this.el.tree.querySelectorAll("button[data-toggle]").forEach((btn) => {
+            btn.addEventListener("click", () => this.toggleNode(btn.dataset.toggle || ""));
+          });
+          this.el.tree.querySelectorAll("button[data-ignore]").forEach((btn) => {
+            btn.addEventListener("click", () => this.ignoreNode(btn.dataset.ignore || ""));
+          });
+        },
+
+        treeRow(n) {
+          const ind = 10 + (n.depth * 14);
+          const muted = n.ignored ? "text-zinc-500 line-through" : "text-zinc-300";
+          const badge = n.ignored ? `<span class="text-[10px] uppercase tracking-[0.08em] text-amber-300 border border-amber-700/70 rounded-full px-2 py-0.5">${I18n.t("ignoredTip")}</span>` : "";
+          return `
+            <div class="tree-node rounded-lg border ${n.ignored ? "border-zinc-800 bg-zinc-900/30" : "border-zinc-800/80 bg-zinc-900/55"} p-2 mb-1" style="--pad:${ind}px">
+              <div class="row flex items-center gap-2">
+                <button data-toggle="${n.rel.replace(/"/g, "")}" class="shrink-0 w-6 h-6 rounded-md border border-zinc-700/80 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 text-xs">${n.open ? "−" : "+"}</button>
+                <span class="flex-1 text-xs ${muted} path-cut" title="${n.rel.replace(/"/g, "")}">${n.name}</span>
+                ${badge}
+                <button data-ignore="${n.rel.replace(/"/g, "")}" class="text-[10px] px-2 py-0.5 rounded-md border ${n.ignored ? "border-zinc-700 text-zinc-500" : "border-amber-700/80 text-amber-300 hover:bg-amber-950/35"}">${n.ignored ? I18n.t("ignored") : I18n.t("ignore")}</button>
+              </div>
+            </div>
+          `;
+        },
+
+        toggleNode(rel) {
+          const node = this.st.nodeMap.get(rel);
+          if (!node) return;
+          node.open = !node.open;
+          if (node.open) this.st.open.add(rel);
+          else this.st.open.delete(rel);
+          this.save();
+          this.renderTree();
+        },
+
+        ignoreNode(rel) {
+          if (!rel) return;
+          this.st.blacklist.add(rel.toLowerCase());
+          this.clearFromQueue(rel);
+          const node = this.st.nodeMap.get(rel);
+          if (node) node.ignored = true;
+          this.save();
+          this.renderTree();
+          if (this.st.queue[0] && this.blocked(this.st.queue[0].rel)) this.skipCurrent();
+        },
+
+        uiVersion() {
+          this.el.versionTag.textContent = `Script Version: ${VER}`;
+        },
+
+        uiLang() {
+          document.title = I18n.t("title");
+          this.el.treeTitle.textContent = I18n.t("treeTitle");
+          this.el.btnPass.textContent = I18n.t("pass");
+          this.el.btnMatch.textContent = I18n.t("match");
+          this.el.btnExport.textContent = I18n.t("export");
+          this.updateCounter();
+        },
+
+        uiShell() {
+          const fsOk = typeof window.showDirectoryPicker === "function";
+          this.showControls(false);
+          const srcBadge = this.st.srcName
+            ? `<span class="inline-flex items-center gap-1 rounded-full border border-amber-700/80 bg-amber-950/35 text-amber-200 text-xs px-2 py-1">${I18n.t("srcLabel")}: ${this.st.srcName}</span>`
+            : `<span class="inline-flex items-center rounded-full border border-zinc-700 bg-zinc-900 text-zinc-400 text-xs px-2 py-1">${I18n.t("srcMissing")}</span>`;
+          const dstBadge = this.st.dstName
+            ? `<span class="inline-flex items-center gap-1 rounded-full border border-emerald-700/80 bg-emerald-950/30 text-emerald-200 text-xs px-2 py-1">${I18n.t("dstLabel")}: ${this.st.dstName}</span>`
+            : `<span class="inline-flex items-center rounded-full border border-zinc-700 bg-zinc-900 text-zinc-400 text-xs px-2 py-1">${I18n.t("dstMissing")}</span>`;
+
+          this.el.player.innerHTML = `
+            <div class="h-full w-full grid place-items-center p-4 sm:p-6">
+              <div class="w-full max-w-2xl rounded-2xl border border-zinc-800 bg-zinc-900/80 p-6 sm:p-7 shadow-2xl">
+                <h1 class="text-lg sm:text-xl font-semibold text-zinc-100">${I18n.t("setupTitle")}</h1>
+                <p class="mt-2 text-sm text-zinc-400 leading-relaxed">${fsOk ? I18n.t("setupTxt") : I18n.t("fsMissing")}</p>
+                <div class="mt-4 flex flex-wrap gap-2">
+                  ${srcBadge}
+                  ${dstBadge}
+                </div>
+                <div class="mt-5 grid gap-3 sm:grid-cols-2">
+                  <button id="pickSrc" type="button" ${fsOk ? "" : "disabled"} class="rounded-xl border border-zinc-700 bg-zinc-950 hover:bg-zinc-800 px-4 py-2.5 text-sm font-medium disabled:opacity-50">${I18n.t("pickSrc")}</button>
+                  <button id="pickDst" type="button" ${fsOk ? "" : "disabled"} class="rounded-xl border border-zinc-700 bg-zinc-950 hover:bg-zinc-800 px-4 py-2.5 text-sm font-medium disabled:opacity-50">${I18n.t("pickDst")}</button>
+                </div>
+                <div class="mt-5">
+                  <button id="startBtn" type="button" ${fsOk ? "" : "disabled"} class="rounded-xl border border-sky-800/80 bg-sky-950/35 hover:bg-sky-900/30 px-4 py-2.5 text-sm font-semibold disabled:opacity-50">${I18n.t("start")}</button>
+                </div>
+              </div>
+            </div>
+          `;
+
+          document.getElementById("pickSrc")?.addEventListener("click", async () => {
+            try { this.st.src = await window.showDirectoryPicker({ mode: "read" }); this.st.srcName = this.titleFromHandle(this.st.src); this.save(); } catch {}
+            this.uiShell();
+          });
+          document.getElementById("pickDst")?.addEventListener("click", async () => {
+            try { this.st.dst = await window.showDirectoryPicker({ mode: "readwrite" }); this.st.dstName = this.titleFromHandle(this.st.dst); this.save(); } catch {}
+            this.uiShell();
+          });
+          document.getElementById("startBtn")?.addEventListener("click", () => {
+            if (!this.st.src || !this.st.dst) return alert(I18n.t("needBoth"));
+            this.start();
+          });
+        },
+
+        titleFromHandle(hdl) {
+          return hdl?.name || "";
+        },
+
+        async bootstrapQueue() {
+          this.st.buf = this.adaptBuf();
+          this.st.stack = [{ rel: "", hdl: this.st.src, parentRel: "" }];
+          this.st.gen = Scanner.walk({
+            stack: this.st.stack,
+            blacklist: this.st.blacklist,
+            onDir: (rel, parentRel) => this.addNode(rel, parentRel)
+          });
+          await this.fill(1);
+          this.renderCard();
+          this.maintain();
+        },
+
+        async start() {
+          this.releaseQueue();
+          this.st.nodeMap.clear();
+          this.st.treeRoots = [];
+          this.st.ready = true;
           this.st.busy = false;
           this.st.exhausted = false;
           this.st.seen = 0;
           this.st.matched = [];
           this.st.path = "";
           this.st.copyMsg = "";
-          this.st.tree.clear();
-          this.updateCounter();
-          this.uiSetup();
+          this.st.metaDate = "";
+          this.st.open = new Set(Array.from(this.st.open).filter(Boolean));
+          this.uiLang();
+          await this.bootstrapQueue();
           this.save();
         },
 
-        retext() {
-          document.title = I18n.t("title");
-          this.el.btnPass.textContent = I18n.t("pass");
-          this.el.btnMatch.textContent = I18n.t("match");
-          this.el.btnExport.textContent = I18n.t("export");
-          this.el.versionTag.textContent = `Script Version: ${SCRIPT_VERSION}`;
-          this.el.treeTitle.textContent = I18n.t("treeTitle");
-          this.updateCounter();
+        async timedGet(item) {
+          return this.timed(() => item.hdl.getFile(), TIMEOUT_MS);
+        },
 
-          if (!this.st.ready) this.uiSetup();
-          else this.renderCard();
+        timed(fn, ms = TIMEOUT_MS) {
+          let timer;
+          const time = new Promise((_, reject) => {
+            timer = setTimeout(() => reject(new Error("timeout")), ms);
+          });
+          return Promise.race([Promise.resolve().then(fn), time]).finally(() => clearTimeout(timer));
+        },
+
+        async resolveMedia(item) {
+          const file = await this.timedGet(item);
+          if (file.size < MIN_BYTES) throw new Error("small");
+          const date = file.lastModified ? new Date(file.lastModified) : null;
+          return { file, date };
+        },
+
+        bindMedia(item) {
+          const media = document.getElementById("media");
+          const loader = document.getElementById("loader");
+          if (!media) return;
+
+          let settled = false;
+          const done = () => {
+            if (settled) return;
+            settled = true;
+            media.classList.remove("media-pending");
+            media.classList.add("media-ready");
+            if (loader) {
+              loader.classList.add("opacity-0");
+              setTimeout(() => loader.remove(), 160);
+            }
+          };
+          const fail = () => this.skipCurrent(item.rel);
+          const ttl = setTimeout(() => { if (!settled) fail(); }, TIMEOUT_MS);
+
+          media.addEventListener(item.kind === "video" ? "loadeddata" : "load", () => { clearTimeout(ttl); done(); }, { once: true });
+          media.addEventListener("error", () => { clearTimeout(ttl); fail(); }, { once: true });
+        },
+
+        renderCard() {
+          const item = this.st.queue[0];
+          if (!item) {
+            if (this.st.exhausted) this.uiDone();
+            else this.uiEmpty();
+            this.updateCounter();
+            return;
+          }
+
+          this.st.path = item.rel;
+          this.st.metaDate = item.date ? this.fmtDate(item.date) : "-";
+          const media = item.kind === "video"
+            ? `<video id="media" class="w-full h-full object-contain media-pending" src="${item.url}" controls autoplay muted playsinline preload="metadata"></video>`
+            : `<img id="media" class="w-full h-full object-contain media-pending" src="${item.url}" alt="${item.rel.replace(/"/g, "")}" draggable="false" />`;
+
+          this.el.player.innerHTML = `
+            <div class="h-full w-full grid place-items-center p-2 sm:p-4">
+              <div class="w-full h-full max-h-[76vh] max-w-5xl">
+                <article id="card" class="card relative w-full h-full rounded-2xl border border-zinc-700 bg-zinc-900/85 overflow-hidden shadow-2xl">
+                  ${media}
+                  <div id="loader" class="absolute inset-0 grid place-items-center bg-zinc-950/45 backdrop-blur-[1px]">
+                    <div class="absolute w-[86%] h-[70%] rounded-xl border border-zinc-700 skeleton"></div>
+                    <div class="relative z-10 flex flex-col items-center gap-3">
+                      <span class="h-10 w-10 rounded-full border-4 border-zinc-600 border-t-sky-400 animate-spin"></span>
+                      <span class="text-[11px] uppercase tracking-[0.12em] text-zinc-300">${I18n.t("loading")}</span>
+                    </div>
+                  </div>
+                  <div class="absolute left-3 right-3 bottom-3 rounded-lg border border-zinc-700/80 bg-zinc-950/78 px-3 py-2 backdrop-blur-sm grid gap-1">
+                    <div class="flex items-center justify-between gap-2 text-[10px] uppercase tracking-[0.12em] text-zinc-400">
+                      <span>${I18n.t("pathLabel")}</span>
+                      <span id="metaDate" class="text-zinc-500">${this.st.metaDate}</span>
+                    </div>
+                    <div id="pathText" class="path-cut text-xs text-zinc-200" title="${item.rel.replace(/"/g, "")}">${item.rel}</div>
+                    <div id="copyText" class="mt-0.5 text-[10px] text-zinc-500">${this.st.copyMsg || ""}</div>
+                  </div>
+                </article>
+              </div>
+            </div>
+          `;
+
+          this.showControls(true);
+          this.updateCounter();
+          this.bindMedia(item);
+          this.fill(this.st.buf + 1);
+        },
+
+        async fill(target = this.st.buf + 1) {
+          if (!this.st.gen || this.st.exhausted) return;
+          while (this.st.queue.length < target && !this.st.exhausted) {
+            const next = await this.st.gen.next();
+            if (next.done) {
+              this.st.exhausted = true;
+              break;
+            }
+
+            const item = next.value;
+            if (this.blocked(item.rel)) continue;
+
+            try {
+              const { file, date } = await this.resolveMedia(item);
+              const url = URL.createObjectURL(file);
+              this.st.queue.push({ ...item, file, date, url });
+            } catch {
+            }
+          }
+        },
+
+        maintain() {
+          if (this.st.fillJob) return this.st.fillJob;
+          this.st.fillJob = (async () => {
+            try {
+              await this.fill(this.st.buf + 1);
+            } finally {
+              this.st.fillJob = null;
+              if (this.st.ready && !this.st.exhausted && this.st.queue.length < this.st.buf + 1) queueMicrotask(() => this.maintain());
+            }
+          })();
+          return this.st.fillJob;
+        },
+
+        async skipCurrent(expectedRel = "") {
+          if (!this.st.ready || this.st.busy || !this.st.queue.length) return;
+          const head = this.st.queue[0];
+          if (!head) return;
+          if (expectedRel && head.rel !== expectedRel) return;
+
+          this.st.busy = true;
+          this.release(this.st.queue.shift());
+          await this.fill(this.st.buf + 1);
+          this.renderCard();
+          this.st.busy = false;
+        },
+
+        async swipe(kind) {
+          if (!this.st.ready || this.st.busy || !this.st.queue.length) return;
+          this.st.busy = true;
+          const head = this.st.queue[0];
+          const card = document.getElementById("card");
+          if (!card) {
+            this.st.busy = false;
+            return;
+          }
+
+          if (kind === "match") {
+            this.st.matched.push(head.rel);
+            await this.copyMatch(head);
+          } else {
+            this.st.copyMsg = "";
+          }
+
+          card.classList.add(kind === "match" ? "out-match" : "out-pass");
+          setTimeout(async () => {
+            this.st.seen += 1;
+            this.release(this.st.queue.shift());
+            this.save();
+            await this.fill(this.st.buf + 1);
+            this.renderCard();
+            this.st.busy = false;
+          }, 220);
+        },
+
+        async copyMatch(item) {
+          if (!this.st.dst) return;
+          this.st.copyMsg = I18n.t("copyBusy");
+          this.updateMeta();
+          try {
+            const out = await this.st.dst.getFileHandle(item.file.name, { create: true });
+            const wr = await out.createWritable();
+            await wr.write(item.file);
+            await wr.close();
+            this.st.copyMsg = I18n.t("copyOk");
+          } catch {
+            this.st.copyMsg = I18n.t("copyFail");
+          }
+          this.updateMeta();
+        },
+
+        updateCounter() {
+          this.el.counter.textContent = I18n.t("progress", { seen: this.st.seen, match: this.st.matched.length });
+        },
+
+        updateMeta() {
+          const p = document.getElementById("pathText");
+          const c = document.getElementById("copyText");
+          const d = document.getElementById("metaDate");
+          if (p) {
+            p.textContent = this.st.path || "";
+            p.title = this.st.path || "";
+          }
+          if (c) c.textContent = this.st.copyMsg || "";
+          if (d) d.textContent = this.st.metaDate || "";
+        },
+
+        async exportZip() {
+          if (!this.st.matched.length) return alert(I18n.t("exportEmpty"));
+          if (!window.JSZip) return alert(I18n.t("zipMissing"));
+
+          const prev = this.el.btnExport.textContent;
+          this.el.btnExport.textContent = I18n.t("exporting");
+          this.el.btnExport.disabled = true;
+
+          try {
+            const zip = new JSZip();
+            const used = new Map();
+            for (const rel of this.st.matched) {
+              try {
+                const file = await this.resolveFile(rel);
+                const name = file.name || rel.split("/").pop() || "media";
+                const n = used.get(name) || 0;
+                used.set(name, n + 1);
+                const dot = name.lastIndexOf(".");
+                const base = dot > 0 ? name.slice(0, dot) : name;
+                const ext = dot > 0 ? name.slice(dot) : "";
+                const out = n === 0 ? name : `${base}_${n}${ext}`;
+                zip.file(out, file);
+              } catch {
+              }
+            }
+            const blob = await zip.generateAsync({ type: "blob", compression: "DEFLATE", compressionOptions: { level: 4 } });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = I18n.t("exportName");
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+          } finally {
+            this.el.btnExport.disabled = false;
+            this.el.btnExport.textContent = prev || I18n.t("export");
+          }
+        },
+
+        async resolveFile(rel) {
+          let dir = this.st.src;
+          const parts = rel.split("/");
+          const name = parts.pop();
+          for (const seg of parts) dir = await dir.getDirectoryHandle(seg);
+          const hdl = await dir.getFileHandle(name);
+          const file = await this.timed(() => hdl.getFile(), TIMEOUT_MS);
+          return file;
+        },
+
+        treeReset() {
+          this.st.nodeMap.clear();
+        },
+
+        initSplit() {
+          this.splitToCss();
+          const start = (e) => {
+            e.preventDefault();
+            const move = (ev) => {
+              const x = ev.clientX || (ev.touches && ev.touches[0]?.clientX);
+              if (!x) return;
+              this.persistSplit(x);
+            };
+            const end = () => {
+              window.removeEventListener("pointermove", move);
+              window.removeEventListener("pointerup", end);
+              window.removeEventListener("touchmove", move);
+              window.removeEventListener("touchend", end);
+            };
+            window.addEventListener("pointermove", move);
+            window.addEventListener("pointerup", end);
+            window.addEventListener("touchmove", move, { passive: true });
+            window.addEventListener("touchend", end);
+          };
+          this.el.splitHandle.addEventListener("pointerdown", start);
+          this.el.splitHandle.addEventListener("touchstart", start, { passive: false });
+          window.addEventListener("resize", () => this.splitToCss());
+        },
+
+        showReadyControls() {
+          this.showControls(true);
         },
 
         bind() {
           this.el.btnPass.addEventListener("click", () => this.swipe("pass"));
           this.el.btnMatch.addEventListener("click", () => this.swipe("match"));
           this.el.btnExport.addEventListener("click", () => this.exportZip());
-
+          this.el.lang.addEventListener("change", () => {
+            I18n.lang = this.el.lang.value in I18n.dict ? this.el.lang.value : "en";
+            this.save();
+            this.uiLang();
+            if (!this.st.ready) this.uiShell();
+            else this.renderCard();
+          });
           document.addEventListener("keydown", (ev) => {
             if (!this.st.ready) return;
             const tag = document.activeElement?.tagName || "";
             if (["INPUT", "SELECT", "TEXTAREA", "BUTTON"].includes(tag)) return;
-
-            if (ev.key === "ArrowLeft") {
-              ev.preventDefault();
-              this.swipe("pass");
-            }
-            if (ev.key === "ArrowRight") {
-              ev.preventDefault();
-              this.swipe("match");
-            }
+            if (ev.key === "ArrowLeft") { ev.preventDefault(); this.swipe("pass"); }
+            if (ev.key === "ArrowRight") { ev.preventDefault(); this.swipe("match"); }
           });
-
-          this.el.lang.addEventListener("change", () => {
-            I18n.lang = this.el.lang.value in I18n.dict ? this.el.lang.value : "en";
-            this.save();
-            this.retext();
-          });
-
           window.addEventListener("beforeunload", () => this.save());
+        },
+
+        showControls(on) {
+          this.el.btnExport.classList.toggle("hidden", !on);
+          this.el.btnPass.classList.toggle("hidden", !on);
+          this.el.btnMatch.classList.toggle("hidden", !on);
+        },
+
+        fmtDate(dt) {
+          if (!dt) return "-";
+          try {
+            return new Intl.DateTimeFormat(I18n.lang, { year: "numeric", month: "short", day: "2-digit" }).format(dt);
+          } catch {
+            return new Date(dt).toLocaleDateString();
+          }
         },
 
         init() {
           this.load();
           if (!I18n.lang) I18n.lang = I18n.detect();
+          this.st.split = this.st.split || DEFAULT_SPLIT;
+          this.st.buf = this.adaptBuf();
           this.el.lang.value = I18n.lang;
-          this.el.versionTag.textContent = `Script Version: ${SCRIPT_VERSION}`;
+          this.uiVersion();
+          this.uiLang();
+          this.initSplit();
           this.bind();
-          this.retext();
-          this.uiSetup();
+          this.uiShell();
         }
       };
 
