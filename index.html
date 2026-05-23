@@ -17,15 +17,11 @@
       width: 100%;
       height: 100%;
       background:
-        radial-gradient(130% 90% at 0% 0%, rgba(63, 63, 70, 0.17), transparent 58%),
-        radial-gradient(140% 90% at 100% 100%, rgba(39, 39, 42, 0.25), transparent 62%),
+        radial-gradient(130% 90% at 0% 0%, rgba(63, 63, 70, 0.16), transparent 58%),
+        radial-gradient(140% 90% at 100% 100%, rgba(39, 39, 42, 0.23), transparent 62%),
         #09090b;
-      overflow: hidden;
       font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
-    }
-
-    .card-shell {
-      perspective: 900px;
+      overflow: hidden;
     }
 
     .card {
@@ -35,13 +31,13 @@
 
     .card.out-pass {
       border-color: rgba(248, 113, 113, 0.95);
-      transform: translateX(-54vw) rotate(-14deg) scale(0.95);
+      transform: translateX(-52vw) rotate(-13deg) scale(0.95);
       opacity: 0;
     }
 
     .card.out-match {
       border-color: rgba(74, 222, 128, 0.95);
-      transform: translateX(54vw) rotate(14deg) scale(0.95);
+      transform: translateX(52vw) rotate(13deg) scale(0.95);
       opacity: 0;
     }
 
@@ -51,18 +47,18 @@
 
     .media-ready {
       opacity: 1;
-      transition: opacity 180ms ease;
+      transition: opacity 170ms ease;
     }
 
     .skeleton {
       background:
-        linear-gradient(110deg, rgba(39, 39, 42, 0.35) 8%, rgba(82, 82, 91, 0.26) 18%, rgba(39, 39, 42, 0.35) 33%),
-        rgba(24, 24, 27, 0.75);
+        linear-gradient(110deg, rgba(39, 39, 42, 0.34) 8%, rgba(82, 82, 91, 0.24) 18%, rgba(39, 39, 42, 0.34) 33%),
+        rgba(24, 24, 27, 0.74);
       background-size: 200% 100%;
       animation: wave 1.15s linear infinite;
     }
 
-    .truncate-middle {
+    .path-cut {
       display: block;
       max-width: 100%;
       overflow: hidden;
@@ -80,16 +76,23 @@
         background-position-x: -20%;
       }
     }
+
+    @media (max-width: 980px) {
+      .layout-main {
+        grid-template-columns: 1fr;
+      }
+
+      .tree-panel {
+        height: 34vh;
+      }
+    }
   </style>
 </head>
 <body class="bg-zinc-950 text-zinc-100">
-  <main class="h-full w-full grid grid-rows-[auto_1fr_auto] place-items-center p-3 sm:p-4 gap-2">
-    <header class="w-full max-w-6xl flex items-center justify-between gap-3">
-      <div id="counter" class="text-[11px] sm:text-xs uppercase tracking-[0.12em] text-zinc-400 border border-zinc-700/80 bg-zinc-900/80 rounded-full px-3 py-1.5">
-        0
-      </div>
+  <main class="h-full w-full grid grid-rows-[auto_1fr_auto] gap-2 p-3 sm:p-4">
+    <header class="w-full flex items-center justify-between gap-3">
+      <div id="counter" class="text-[11px] sm:text-xs uppercase tracking-[0.12em] text-zinc-400 border border-zinc-700/80 bg-zinc-900/80 rounded-full px-3 py-1.5">0</div>
       <div class="flex items-center gap-2">
-        <div id="verTag" class="text-[10px] text-zinc-500 border border-zinc-800 rounded-md px-2 py-1 bg-zinc-900/70"></div>
         <select id="lang" class="text-xs rounded-md bg-zinc-900 border border-zinc-700 text-zinc-100 px-2 py-1.5 outline-none focus:ring-2 focus:ring-sky-400/60">
           <option value="en">English</option>
           <option value="pt">Português</option>
@@ -99,708 +102,848 @@
       </div>
     </header>
 
-    <section id="board" class="w-full h-full max-w-6xl grid place-items-center"></section>
+    <div class="layout-main grid grid-cols-[minmax(0,1fr)_minmax(280px,25vw)] gap-3 min-h-0">
+      <section id="stage" class="min-h-0 rounded-2xl border border-zinc-800 bg-zinc-900/65"></section>
 
-    <footer id="controls" class="w-full max-w-6xl flex items-center justify-center gap-3 pb-1">
-      <button id="btnExport" type="button" class="min-w-[92px] rounded-xl border border-zinc-700 bg-zinc-900 hover:bg-zinc-800 px-4 py-2 text-sm font-medium">Export</button>
-      <button id="btnPass" type="button" class="min-w-[104px] rounded-xl border border-red-900/70 bg-zinc-900 hover:bg-zinc-800 px-4 py-2 text-sm font-semibold">Pass</button>
-      <button id="btnMatch" type="button" class="min-w-[104px] rounded-xl border border-emerald-900/70 bg-zinc-900 hover:bg-zinc-800 px-4 py-2 text-sm font-semibold">Match</button>
+      <aside class="tree-panel min-h-0 rounded-2xl border border-zinc-800 bg-zinc-900/70 flex flex-col overflow-hidden">
+        <div class="px-3 py-2 border-b border-zinc-800 flex items-center justify-between gap-2">
+          <h2 id="treeTitle" class="text-xs uppercase tracking-[0.12em] text-zinc-400">Folders</h2>
+          <span id="treeCount" class="text-[10px] text-zinc-500">0</span>
+        </div>
+        <div id="tree" class="flex-1 overflow-y-auto px-2 py-2 space-y-1"></div>
+      </aside>
+    </div>
+
+    <footer class="w-full flex items-center justify-between gap-2">
+      <div id="versionTag" class="text-[10px] text-zinc-500 border border-zinc-800 bg-zinc-900/70 rounded-md px-2 py-1">Script Version: 2.0.0</div>
+      <div id="controls" class="flex items-center justify-center gap-2">
+        <button id="btnExport" type="button" class="min-w-[90px] rounded-xl border border-zinc-700 bg-zinc-900 hover:bg-zinc-800 px-4 py-2 text-sm font-medium">Export</button>
+        <button id="btnPass" type="button" class="min-w-[98px] rounded-xl border border-red-900/70 bg-zinc-900 hover:bg-zinc-800 px-4 py-2 text-sm font-semibold">Pass</button>
+        <button id="btnMatch" type="button" class="min-w-[98px] rounded-xl border border-emerald-900/70 bg-zinc-900 hover:bg-zinc-800 px-4 py-2 text-sm font-semibold">Match</button>
+      </div>
     </footer>
   </main>
 
   <script>
     (() => {
-      const APP_VERSION = "v1.3.0";
-      const APP_COMMIT = "main-working";
-      const STORAGE_KEY = "mediatinder-v2";
-      const BUFFER_AHEAD = 20;
-      const BUFFER_SIZE = BUFFER_AHEAD + 1;
+      const KEY = "mediatinder-v200";
+      const SCRIPT_VERSION = "2.0.0";
+      const BUF_AHEAD = 20;
+      const BUF_SIZE = BUF_AHEAD + 1;
       const MIN_BYTES = 50 * 1024;
-      const SKIP_DIRS = ["windows", "program files", "appdata", "node_modules"];
-      const PASS = "pass";
-      const MATCH = "match";
       const IMG_EXT = new Set(["jpg", "jpeg", "png", "webp"]);
       const VID_EXT = new Set(["mp4", "mov", "webm"]);
+      const SYS_DIRS = ["windows", "program files", "appdata", "node_modules"];
 
-      const I18N = {
-        en: {
-          title: "MediaTinder",
-          setupTitle: "Pick source and destination folders",
-          setupTxt: "Source is scanned lazily for old HDD performance. Destination receives real-time copies on Match.",
-          sourceBtn: "Select Source (HDD)",
-          targetBtn: "Select Destination (Saved)",
-          sourceReady: "Source ready",
-          targetReady: "Destination ready",
-          startBtn: "Start",
-          pass: "Pass",
-          match: "Match",
-          export: "Export",
-          openNew: "Open New Folders",
-          doneTitle: "Review complete",
-          doneTxt: "You can export selected items as ZIP backup or pick folders again.",
-          noneTitle: "No valid media found",
-          noneTxt: "Files under 50KB and ignored system directories were skipped.",
-          progress: "{seen} seen • {match} match",
-          pathLabel: "Current",
-          copying: "Copying...",
-          copied: "Saved",
-          copyErr: "Copy failed",
-          exporting: "Building ZIP...",
-          exportName: "mediatinder_backup.zip",
-          exportEmpty: "No matched files to export.",
-          fsMissing: "This browser does not support File System Access API.",
-          zipMissing: "JSZip is unavailable.",
-          hint: "Keyboard: Left Arrow = Pass, Right Arrow = Match",
-          mediaLoad: "Loading media...",
-          srcNeed: "Please select both source and destination folders.",
-          selSource: "Source folder selected",
-          selTarget: "Destination folder selected"
+      const I18n = {
+        lang: "en",
+        dict: {
+          en: {
+            title: "MediaTinder",
+            setupTitle: "Pick source and destination",
+            setupTxt: "Source is scanned lazily for slow HDDs. Match copies files instantly to destination.",
+            pickSrc: "Select Source",
+            pickDst: "Select Destination",
+            start: "Start",
+            srcMissing: "Source not selected",
+            dstMissing: "Destination not selected",
+            srcLabel: "Source",
+            dstLabel: "Destination",
+            pathLabel: "Current",
+            pass: "Pass",
+            match: "Match",
+            export: "Export",
+            openNew: "Open Folders Again",
+            doneTitle: "Review complete",
+            doneTxt: "You can export a ZIP backup or open folders again.",
+            emptyTitle: "No valid media found",
+            emptyTxt: "System paths and files below 50KB were ignored.",
+            progress: "{seen} seen • {match} match",
+            copyBusy: "Copying...",
+            copyOk: "Saved",
+            copyFail: "Copy failed",
+            loading: "Loading media...",
+            needBoth: "Please select both source and destination.",
+            treeTitle: "Folders",
+            ignore: "Ignore",
+            ignored: "Ignored",
+            exporting: "Building ZIP...",
+            exportName: "mediatinder_backup.zip",
+            exportEmpty: "No matched files to export.",
+            fsMissing: "File System Access API is not available in this browser.",
+            zipMissing: "JSZip is unavailable."
+          },
+          pt: {
+            title: "MediaTinder",
+            setupTitle: "Seleciona origem e destino",
+            setupTxt: "A origem é lida de forma lazy para HDD lento. Match copia na hora para o destino.",
+            pickSrc: "Selecionar Origem",
+            pickDst: "Selecionar Destino",
+            start: "Iniciar",
+            srcMissing: "Origem não selecionada",
+            dstMissing: "Destino não selecionado",
+            srcLabel: "Origem",
+            dstLabel: "Destino",
+            pathLabel: "Atual",
+            pass: "Passar",
+            match: "Match",
+            export: "Exportar",
+            openNew: "Abrir Pastas Novamente",
+            doneTitle: "Triagem concluída",
+            doneTxt: "Podes exportar um ZIP de backup ou abrir as pastas novamente.",
+            emptyTitle: "Nenhum ficheiro válido encontrado",
+            emptyTxt: "Caminhos de sistema e ficheiros abaixo de 50KB foram ignorados.",
+            progress: "{seen} vistos • {match} match",
+            copyBusy: "A copiar...",
+            copyOk: "Guardado",
+            copyFail: "Falha ao copiar",
+            loading: "A carregar média...",
+            needBoth: "Seleciona origem e destino.",
+            treeTitle: "Pastas",
+            ignore: "Ignorar",
+            ignored: "Ignorada",
+            exporting: "A criar ZIP...",
+            exportName: "mediatinder_backup.zip",
+            exportEmpty: "Não há match para exportar.",
+            fsMissing: "A File System Access API não está disponível neste navegador.",
+            zipMissing: "JSZip indisponível."
+          },
+          fr: {
+            title: "MediaTinder",
+            setupTitle: "Choisissez source et destination",
+            setupTxt: "La source est lue en lazy pour les HDD lents. Match copie en direct vers la destination.",
+            pickSrc: "Choisir Source",
+            pickDst: "Choisir Destination",
+            start: "Démarrer",
+            srcMissing: "Source non sélectionnée",
+            dstMissing: "Destination non sélectionnée",
+            srcLabel: "Source",
+            dstLabel: "Destination",
+            pathLabel: "Actuel",
+            pass: "Passer",
+            match: "Match",
+            export: "Exporter",
+            openNew: "Rouvrir les dossiers",
+            doneTitle: "Tri terminé",
+            doneTxt: "Vous pouvez exporter un ZIP de sauvegarde ou rouvrir les dossiers.",
+            emptyTitle: "Aucun média valide trouvé",
+            emptyTxt: "Les chemins système et fichiers sous 50KB ont été ignorés.",
+            progress: "{seen} vus • {match} match",
+            copyBusy: "Copie...",
+            copyOk: "Sauvé",
+            copyFail: "Échec copie",
+            loading: "Chargement média...",
+            needBoth: "Sélectionnez source et destination.",
+            treeTitle: "Dossiers",
+            ignore: "Ignorer",
+            ignored: "Ignoré",
+            exporting: "Création ZIP...",
+            exportName: "mediatinder_backup.zip",
+            exportEmpty: "Aucun match à exporter.",
+            fsMissing: "File System Access API indisponible dans ce navigateur.",
+            zipMissing: "JSZip indisponible."
+          },
+          es: {
+            title: "MediaTinder",
+            setupTitle: "Selecciona origen y destino",
+            setupTxt: "El origen se lee en lazy para HDD lento. Match copia en tiempo real al destino.",
+            pickSrc: "Seleccionar Origen",
+            pickDst: "Seleccionar Destino",
+            start: "Iniciar",
+            srcMissing: "Origen no seleccionado",
+            dstMissing: "Destino no seleccionado",
+            srcLabel: "Origen",
+            dstLabel: "Destino",
+            pathLabel: "Actual",
+            pass: "Pasar",
+            match: "Match",
+            export: "Exportar",
+            openNew: "Abrir Carpetas de Nuevo",
+            doneTitle: "Revisión completada",
+            doneTxt: "Puedes exportar un ZIP de respaldo o abrir carpetas otra vez.",
+            emptyTitle: "No se encontró media válida",
+            emptyTxt: "Se ignoraron rutas de sistema y archivos menores a 50KB.",
+            progress: "{seen} vistos • {match} match",
+            copyBusy: "Copiando...",
+            copyOk: "Guardado",
+            copyFail: "Error al copiar",
+            loading: "Cargando media...",
+            needBoth: "Selecciona origen y destino.",
+            treeTitle: "Carpetas",
+            ignore: "Ignorar",
+            ignored: "Ignorada",
+            exporting: "Creando ZIP...",
+            exportName: "mediatinder_backup.zip",
+            exportEmpty: "No hay match para exportar.",
+            fsMissing: "File System Access API no disponible en este navegador.",
+            zipMissing: "JSZip no disponible."
+          }
         },
-        pt: {
-          title: "MediaTinder",
-          setupTitle: "Escolhe as pastas de origem e destino",
-          setupTxt: "A origem é lida de forma lazy para HDD antigo. O destino recebe cópias em tempo real no Match.",
-          sourceBtn: "Selecionar Origem (HDD)",
-          targetBtn: "Selecionar Destino (Salvos)",
-          sourceReady: "Origem pronta",
-          targetReady: "Destino pronto",
-          startBtn: "Iniciar",
-          pass: "Passar",
-          match: "Match",
-          export: "Exportar",
-          openNew: "Abrir Novas Pastas",
-          doneTitle: "Triagem concluída",
-          doneTxt: "Podes exportar os selecionados em ZIP ou escolher novas pastas.",
-          noneTitle: "Nenhum ficheiro válido encontrado",
-          noneTxt: "Ficheiros abaixo de 50KB e pastas de sistema foram ignorados.",
-          progress: "{seen} vistos • {match} match",
-          pathLabel: "Atual",
-          copying: "A copiar...",
-          copied: "Guardado",
-          copyErr: "Falha ao copiar",
-          exporting: "A criar ZIP...",
-          exportName: "mediatinder_backup.zip",
-          exportEmpty: "Não há ficheiros match para exportar.",
-          fsMissing: "Este navegador não suporta File System Access API.",
-          zipMissing: "JSZip indisponível.",
-          hint: "Teclado: Seta Esquerda = Passar, Seta Direita = Match",
-          mediaLoad: "A carregar média...",
-          srcNeed: "Seleciona as pastas de origem e destino.",
-          selSource: "Pasta de origem selecionada",
-          selTarget: "Pasta de destino selecionada"
+        detect() {
+          const s = String(navigator.language || "en").toLowerCase();
+          if (s.startsWith("pt")) return "pt";
+          if (s.startsWith("fr")) return "fr";
+          if (s.startsWith("es")) return "es";
+          return "en";
         },
-        fr: {
-          title: "MediaTinder",
-          setupTitle: "Choisissez les dossiers source et destination",
-          setupTxt: "La source est scannée en lazy pour les HDD lents. La destination reçoit une copie en temps réel sur Match.",
-          sourceBtn: "Choisir Source (HDD)",
-          targetBtn: "Choisir Destination (Sauvegardés)",
-          sourceReady: "Source prête",
-          targetReady: "Destination prête",
-          startBtn: "Démarrer",
-          pass: "Passer",
-          match: "Match",
-          export: "Exporter",
-          openNew: "Ouvrir de nouveaux dossiers",
-          doneTitle: "Tri terminé",
-          doneTxt: "Vous pouvez exporter les éléments en ZIP ou choisir d'autres dossiers.",
-          noneTitle: "Aucun média valide trouvé",
-          noneTxt: "Les fichiers sous 50KB et les dossiers système ont été ignorés.",
-          progress: "{seen} vus • {match} match",
-          pathLabel: "Actuel",
-          copying: "Copie...",
-          copied: "Sauvé",
-          copyErr: "Échec de copie",
-          exporting: "Création du ZIP...",
-          exportName: "mediatinder_backup.zip",
-          exportEmpty: "Aucun fichier match à exporter.",
-          fsMissing: "Ce navigateur ne supporte pas File System Access API.",
-          zipMissing: "JSZip indisponible.",
-          hint: "Clavier: Flèche gauche = Passer, Flèche droite = Match",
-          mediaLoad: "Chargement du média...",
-          srcNeed: "Sélectionnez les dossiers source et destination.",
-          selSource: "Dossier source sélectionné",
-          selTarget: "Dossier destination sélectionné"
-        },
-        es: {
-          title: "MediaTinder",
-          setupTitle: "Elige carpetas de origen y destino",
-          setupTxt: "El origen se escanea en modo lazy para HDD lentos. El destino recibe copias en tiempo real con Match.",
-          sourceBtn: "Seleccionar Origen (HDD)",
-          targetBtn: "Seleccionar Destino (Guardados)",
-          sourceReady: "Origen listo",
-          targetReady: "Destino listo",
-          startBtn: "Iniciar",
-          pass: "Pasar",
-          match: "Match",
-          export: "Exportar",
-          openNew: "Abrir Nuevas Carpetas",
-          doneTitle: "Revisión completada",
-          doneTxt: "Puedes exportar los seleccionados en ZIP o elegir nuevas carpetas.",
-          noneTitle: "No se encontraron medios válidos",
-          noneTxt: "Se ignoraron archivos menores a 50KB y carpetas de sistema.",
-          progress: "{seen} vistos • {match} match",
-          pathLabel: "Actual",
-          copying: "Copiando...",
-          copied: "Guardado",
-          copyErr: "Error de copia",
-          exporting: "Creando ZIP...",
-          exportName: "mediatinder_backup.zip",
-          exportEmpty: "No hay archivos match para exportar.",
-          fsMissing: "Este navegador no soporta File System Access API.",
-          zipMissing: "JSZip no disponible.",
-          hint: "Teclado: Flecha izquierda = Pasar, Flecha derecha = Match",
-          mediaLoad: "Cargando medio...",
-          srcNeed: "Selecciona origen y destino.",
-          selSource: "Carpeta origen seleccionada",
-          selTarget: "Carpeta destino seleccionada"
+        t(key, vars = {}) {
+          const pack = this.dict[this.lang] || this.dict.en;
+          let txt = pack[key] || this.dict.en[key] || key;
+          for (const [k, v] of Object.entries(vars)) txt = txt.replace(`{${k}}`, String(v));
+          return txt;
         }
       };
 
-      const $ = {
-        board: document.getElementById("board"),
-        controls: document.getElementById("controls"),
-        counter: document.getElementById("counter"),
-        btnPass: document.getElementById("btnPass"),
-        btnMatch: document.getElementById("btnMatch"),
-        btnExport: document.getElementById("btnExport"),
-        lang: document.getElementById("lang"),
-        verTag: document.getElementById("verTag")
-      };
+      const Scanner = {
+        skipSystem(rel) {
+          const p = `/${String(rel || "").toLowerCase()}/`;
+          return SYS_DIRS.some((d) => p.includes(`/${d}/`));
+        },
+        blocked(rel, bl) {
+          const low = String(rel || "").toLowerCase();
+          for (const b of bl) {
+            if (!b) continue;
+            if (low === b || low.startsWith(`${b}/`)) return true;
+          }
+          return false;
+        },
+        ext(name) {
+          const i = name.lastIndexOf(".");
+          return i < 0 ? "" : name.slice(i + 1).toLowerCase();
+        },
+        kind(name) {
+          const e = this.ext(name);
+          if (IMG_EXT.has(e)) return "image";
+          if (VID_EXT.has(e)) return "video";
+          return "";
+        },
+        async *walk(ctx) {
+          while (ctx.stack.length) {
+            const node = ctx.stack.pop();
+            if (this.blocked(node.rel, ctx.blacklist) || this.skipSystem(node.rel)) continue;
+            if (node.rel) ctx.onDir(node.rel);
 
-      const st = {
-        lang: detectLang(),
-        source: null,
-        target: null,
-        stack: [],
-        gen: null,
-        queue: [],
-        fillJob: null,
-        seen: 0,
-        matched: [],
-        exhausted: false,
-        busy: false,
-        ready: false,
-        lastPath: "",
-        copyState: ""
-      };
+            // Blacklist is checked before every item to abort traversal immediately for ignored paths.
+            for await (const [name, hdl] of node.hdl.entries()) {
+              if (this.blocked(node.rel, ctx.blacklist) || this.skipSystem(node.rel)) break;
+              const rel = node.rel ? `${node.rel}/${name}` : name;
+              if (this.blocked(rel, ctx.blacklist) || this.skipSystem(rel)) continue;
 
-      function detectLang() {
-        const raw = String(navigator.language || "en").toLowerCase();
-        if (raw.startsWith("pt")) return "pt";
-        if (raw.startsWith("fr")) return "fr";
-        if (raw.startsWith("es")) return "es";
-        return "en";
-      }
+              if (hdl.kind === "directory") {
+                ctx.onDir(rel);
+                ctx.stack.push({ rel, hdl });
+                continue;
+              }
 
-      function t(key, vars = {}) {
-        const pack = I18N[st.lang] || I18N.en;
-        const base = pack[key] || I18N.en[key] || key;
-        return Object.keys(vars).reduce((acc, k) => acc.replace(`{${k}}`, String(vars[k])), base);
-      }
-
-      function ext(name) {
-        const i = name.lastIndexOf(".");
-        return i < 0 ? "" : name.slice(i + 1).toLowerCase();
-      }
-
-      function mediaKind(name) {
-        const e = ext(name);
-        if (IMG_EXT.has(e)) return "image";
-        if (VID_EXT.has(e)) return "video";
-        return "";
-      }
-
-      function joinRel(base, seg) {
-        return base ? `${base}/${seg}` : seg;
-      }
-
-      function shouldSkip(rel) {
-        const p = `/${String(rel || "").toLowerCase()}/`;
-        return SKIP_DIRS.some((d) => p.includes(`/${d}/`));
-      }
-
-      function setVersionTag() {
-        $.verTag.textContent = `${APP_VERSION} • ${APP_COMMIT}`;
-      }
-
-      function persist() {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify({ lang: st.lang, seen: st.seen, matched: st.matched }));
-      }
-
-      function restore() {
-        try {
-          const raw = localStorage.getItem(STORAGE_KEY);
-          return raw ? JSON.parse(raw) : null;
-        } catch {
-          return null;
-        }
-      }
-
-      function updateStaticTexts() {
-        document.title = t("title");
-        $.btnPass.textContent = t("pass");
-        $.btnMatch.textContent = t("match");
-        $.btnExport.textContent = t("export");
-        updateCounter();
-      }
-
-      function updateCounter() {
-        $.counter.textContent = t("progress", { seen: st.seen, match: st.matched.length });
-      }
-
-      async function resolveDir(root, rel) {
-        if (!rel) return root;
-        const parts = rel.split("/").filter(Boolean);
-        let dir = root;
-        for (const p of parts) dir = await dir.getDirectoryHandle(p);
-        return dir;
-      }
-
-      async function getFileByPath(root, rel) {
-        const i = rel.lastIndexOf("/");
-        const dirRel = i < 0 ? "" : rel.slice(0, i);
-        const name = i < 0 ? rel : rel.slice(i + 1);
-        const dir = await resolveDir(root, dirRel);
-        const handle = await dir.getFileHandle(name);
-        return handle.getFile();
-      }
-
-      async function copyToTarget(item) {
-        if (!st.target) return;
-        st.copyState = t("copying");
-        updatePathLabel();
-        try {
-          const file = item.file || await item.handle.getFile();
-          const out = await st.target.getFileHandle(file.name, { create: true });
-          const writable = await out.createWritable();
-          await writable.write(file);
-          await writable.close();
-          st.copyState = t("copied");
-        } catch {
-          st.copyState = t("copyErr");
-        }
-        updatePathLabel();
-      }
-
-      async function* walkMedia(ctx) {
-        while (ctx.stack.length) {
-          const node = ctx.stack.pop();
-          for await (const [name, handle] of node.handle.entries()) {
-            const rel = joinRel(node.rel, name);
-            if (shouldSkip(rel)) continue;
-            if (handle.kind === "directory") {
-              ctx.stack.push({ rel, handle });
-              continue;
+              const kind = this.kind(name);
+              if (!kind) continue;
+              yield { rel, kind, hdl };
             }
-            const kind = mediaKind(name);
-            if (!kind) continue;
-            yield { rel, handle, kind };
           }
         }
-      }
+      };
 
-      async function fillQueue(target = BUFFER_SIZE) {
-        if (!st.gen || st.exhausted) return;
-        while (st.queue.length < target && !st.exhausted) {
-          const next = await st.gen.next();
-          if (next.done) {
-            st.exhausted = true;
-            break;
-          }
-          const item = next.value;
+      const App = {
+        el: {
+          stage: document.getElementById("stage"),
+          tree: document.getElementById("tree"),
+          treeTitle: document.getElementById("treeTitle"),
+          treeCount: document.getElementById("treeCount"),
+          counter: document.getElementById("counter"),
+          controls: document.getElementById("controls"),
+          btnPass: document.getElementById("btnPass"),
+          btnMatch: document.getElementById("btnMatch"),
+          btnExport: document.getElementById("btnExport"),
+          lang: document.getElementById("lang"),
+          versionTag: document.getElementById("versionTag")
+        },
+        st: {
+          src: null,
+          dst: null,
+          srcName: "",
+          dstName: "",
+          stack: [],
+          gen: null,
+          queue: [],
+          fillJob: null,
+          ready: false,
+          busy: false,
+          exhausted: false,
+          seen: 0,
+          matched: [],
+          path: "",
+          copyMsg: "",
+          blacklist: new Set(),
+          tree: new Map(),
+          treeTick: false
+        },
+
+        save() {
+          localStorage.setItem(KEY, JSON.stringify({
+            lang: I18n.lang,
+            seen: this.st.seen,
+            matched: this.st.matched,
+            blacklist: Array.from(this.st.blacklist),
+            srcName: this.st.srcName,
+            dstName: this.st.dstName
+          }));
+        },
+
+        load() {
           try {
-            const file = await item.handle.getFile();
-            if (file.size < MIN_BYTES) continue;
-            const url = URL.createObjectURL(file);
-            st.queue.push({ ...item, file, url });
+            const raw = localStorage.getItem(KEY);
+            if (!raw) return;
+            const data = JSON.parse(raw);
+            if (data.lang && I18n.dict[data.lang]) I18n.lang = data.lang;
+            if (Array.isArray(data.blacklist)) this.st.blacklist = new Set(data.blacklist.map((x) => String(x).toLowerCase()));
+            if (typeof data.srcName === "string") this.st.srcName = data.srcName;
+            if (typeof data.dstName === "string") this.st.dstName = data.dstName;
           } catch {
           }
-        }
-      }
+        },
 
-      function maintainQueue(target = BUFFER_SIZE) {
-        if (st.fillJob) return st.fillJob;
-        st.fillJob = (async () => {
+        showControls(on) {
+          this.el.controls.classList.toggle("hidden", !on);
+        },
+
+        release(item) {
+          if (!item?.url) return;
           try {
-            await fillQueue(target);
-          } finally {
-            st.fillJob = null;
-            if (st.ready && !st.exhausted && st.queue.length < target) queueMicrotask(() => maintainQueue(target));
-          }
-        })();
-        return st.fillJob;
-      }
-
-      function releaseItem(item) {
-        if (!item || !item.url) return;
-        try {
-          URL.revokeObjectURL(item.url);
-        } catch {
-        }
-      }
-
-      function releaseQueue() {
-        for (const item of st.queue) releaseItem(item);
-        st.queue = [];
-      }
-
-      function hideControls() {
-        $.controls.classList.add("hidden");
-      }
-
-      function showControls() {
-        $.controls.classList.remove("hidden");
-      }
-
-      function setupScreen() {
-        const fsOk = typeof window.showDirectoryPicker === "function";
-        $.board.innerHTML = `
-          <div class="w-full max-w-2xl rounded-2xl border border-zinc-800 bg-zinc-900/80 p-6 sm:p-7 shadow-2xl">
-            <h1 class="text-lg sm:text-xl font-semibold text-zinc-100">${t("setupTitle")}</h1>
-            <p class="mt-2 text-sm text-zinc-400 leading-relaxed">${fsOk ? t("setupTxt") : t("fsMissing")}</p>
-            <p class="mt-2 text-xs text-zinc-500">${t("hint")}</p>
-            <div class="mt-5 grid gap-3 sm:grid-cols-2">
-              <button id="pickSource" type="button" ${fsOk ? "" : "disabled"} class="rounded-xl border border-zinc-700 bg-zinc-950 hover:bg-zinc-800 px-4 py-2.5 text-sm font-medium disabled:opacity-50">${t("sourceBtn")}</button>
-              <button id="pickTarget" type="button" ${fsOk ? "" : "disabled"} class="rounded-xl border border-zinc-700 bg-zinc-950 hover:bg-zinc-800 px-4 py-2.5 text-sm font-medium disabled:opacity-50">${t("targetBtn")}</button>
-            </div>
-            <div class="mt-3 text-xs text-zinc-500 space-y-1">
-              <div id="sourceState">-</div>
-              <div id="targetState">-</div>
-            </div>
-            <div class="mt-5">
-              <button id="startFlow" type="button" ${fsOk ? "" : "disabled"} class="rounded-xl border border-sky-800/80 bg-sky-950/40 hover:bg-sky-900/30 px-4 py-2.5 text-sm font-semibold disabled:opacity-50">${t("startBtn")}</button>
-            </div>
-          </div>
-        `;
-
-        hideControls();
-
-        const sourceState = document.getElementById("sourceState");
-        const targetState = document.getElementById("targetState");
-        const refreshSetupState = () => {
-          sourceState.textContent = st.source ? `• ${t("selSource")}` : "-";
-          targetState.textContent = st.target ? `• ${t("selTarget")}` : "-";
-        };
-
-        document.getElementById("pickSource").addEventListener("click", async () => {
-          try {
-            st.source = await window.showDirectoryPicker({ mode: "read" });
+            URL.revokeObjectURL(item.url);
           } catch {
           }
-          refreshSetupState();
-        });
+        },
 
-        document.getElementById("pickTarget").addEventListener("click", async () => {
-          try {
-            st.target = await window.showDirectoryPicker({ mode: "readwrite" });
-          } catch {
-          }
-          refreshSetupState();
-        });
+        releaseAll() {
+          for (const item of this.st.queue) this.release(item);
+          this.st.queue = [];
+        },
 
-        document.getElementById("startFlow").addEventListener("click", () => {
-          if (!st.source || !st.target) {
-            alert(t("srcNeed"));
+        markDir(rel) {
+          if (!rel || this.st.tree.has(rel)) return;
+          const depth = rel.split("/").length - 1;
+          const name = rel.split("/").pop() || rel;
+          this.st.tree.set(rel, { rel, name, depth });
+          this.scheduleTree();
+        },
+
+        scheduleTree() {
+          if (this.st.treeTick) return;
+          this.st.treeTick = true;
+          requestAnimationFrame(() => {
+            this.st.treeTick = false;
+            this.renderTree();
+          });
+        },
+
+        renderTree() {
+          const rows = Array.from(this.st.tree.values()).sort((a, b) => a.rel.localeCompare(b.rel, undefined, { sensitivity: "base" }));
+          this.el.treeCount.textContent = String(rows.length);
+
+          if (!rows.length) {
+            this.el.tree.innerHTML = '<div class="text-xs text-zinc-600 px-2 py-1">-</div>';
             return;
           }
-          bootstrapFlow();
-        });
 
-        refreshSetupState();
-      }
-
-      function doneScreen() {
-        $.board.innerHTML = `
-          <div class="w-full max-w-2xl rounded-2xl border border-zinc-800 bg-zinc-900/80 p-6 sm:p-7 shadow-2xl text-center">
-            <h2 class="text-lg sm:text-xl font-semibold">${t("doneTitle")}</h2>
-            <p class="mt-2 text-sm text-zinc-400">${t("doneTxt")}</p>
-            <div class="mt-5 flex flex-wrap items-center justify-center gap-3">
-              <button id="doneExport" type="button" class="rounded-xl border border-zinc-700 bg-zinc-950 hover:bg-zinc-800 px-4 py-2.5 text-sm font-medium">${t("export")}</button>
-              <button id="doneReset" type="button" class="rounded-xl border border-zinc-700 bg-zinc-950 hover:bg-zinc-800 px-4 py-2.5 text-sm font-medium">${t("openNew")}</button>
-            </div>
-          </div>
-        `;
-        hideControls();
-        document.getElementById("doneExport").addEventListener("click", exportZip);
-        document.getElementById("doneReset").addEventListener("click", resetAll);
-      }
-
-      function noneScreen() {
-        $.board.innerHTML = `
-          <div class="w-full max-w-2xl rounded-2xl border border-zinc-800 bg-zinc-900/80 p-6 sm:p-7 shadow-2xl text-center">
-            <h2 class="text-lg sm:text-xl font-semibold">${t("noneTitle")}</h2>
-            <p class="mt-2 text-sm text-zinc-400">${t("noneTxt")}</p>
-            <div class="mt-5">
-              <button id="noneReset" type="button" class="rounded-xl border border-zinc-700 bg-zinc-950 hover:bg-zinc-800 px-4 py-2.5 text-sm font-medium">${t("openNew")}</button>
-            </div>
-          </div>
-        `;
-        hideControls();
-        document.getElementById("noneReset").addEventListener("click", resetAll);
-      }
-
-      function cardHtml(item) {
-        const media = item.kind === "video"
-          ? `<video id="activeMedia" class="w-full h-full object-contain media-pending" src="${item.url}" controls autoplay muted playsinline preload="metadata"></video>`
-          : `<img id="activeMedia" class="w-full h-full object-contain media-pending" src="${item.url}" alt="${item.rel.replace(/"/g, "")}" draggable="false" />`;
-
-        return `
-          <div class="card-shell w-full h-full max-h-[78vh] max-w-5xl">
-            <article id="card" class="card relative w-full h-full rounded-2xl border border-zinc-700 bg-zinc-900/85 overflow-hidden shadow-2xl">
-              ${media}
-              <div id="loader" class="absolute inset-0 grid place-items-center bg-zinc-950/46 backdrop-blur-[1px]">
-                <div class="absolute w-[88%] h-[72%] rounded-xl border border-zinc-700 skeleton"></div>
-                <div class="relative z-10 flex flex-col items-center gap-3">
-                  <span class="h-11 w-11 rounded-full border-4 border-zinc-600 border-t-sky-400 animate-spin"></span>
-                  <span class="text-[11px] uppercase tracking-[0.12em] text-zinc-300">${t("mediaLoad")}</span>
+          this.el.tree.innerHTML = rows.map((d) => {
+            const ignored = Scanner.blocked(d.rel, this.st.blacklist);
+            const pad = 8 + (d.depth * 12);
+            return `
+              <div class="rounded-lg border ${ignored ? "border-zinc-800 bg-zinc-900/30" : "border-zinc-800/80 bg-zinc-900/55"} p-2">
+                <div class="flex items-center gap-2" style="padding-left:${pad}px">
+                  <span class="flex-1 text-xs ${ignored ? "text-zinc-500 line-through" : "text-zinc-300"} path-cut" title="${d.rel.replace(/"/g, "")}">${d.name}</span>
+                  <button data-ignore="${d.rel.replace(/"/g, "")}" class="text-[10px] px-2 py-0.5 rounded-md border ${ignored ? "border-zinc-700 text-zinc-500" : "border-amber-700/80 text-amber-300 hover:bg-amber-950/35"}">${ignored ? I18n.t("ignored") : I18n.t("ignore")}</button>
                 </div>
               </div>
-              <div class="absolute left-3 right-3 bottom-3 rounded-lg border border-zinc-700/80 bg-zinc-950/78 px-3 py-2 backdrop-blur-sm">
-                <div class="text-[10px] uppercase tracking-[0.12em] text-zinc-400">${t("pathLabel")}</div>
-                <div id="pathTxt" class="truncate-middle text-xs text-zinc-200" title="${item.rel.replace(/"/g, "")}">${item.rel}</div>
-                <div id="copyState" class="mt-0.5 text-[10px] text-zinc-500">${st.copyState || ""}</div>
+            `;
+          }).join("");
+
+          this.el.tree.querySelectorAll("button[data-ignore]").forEach((btn) => {
+            btn.addEventListener("click", () => {
+              const rel = String(btn.getAttribute("data-ignore") || "").toLowerCase();
+              this.ignore(rel);
+            });
+          });
+        },
+
+        ignore(rel) {
+          if (!rel) return;
+          this.st.blacklist.add(rel);
+          this.st.queue = this.st.queue.filter((item, idx) => {
+            if (!Scanner.blocked(item.rel, this.st.blacklist)) return true;
+            if (idx === 0 && this.st.ready) return true;
+            this.release(item);
+            return false;
+          });
+          this.save();
+          this.renderTree();
+          if (this.st.queue[0] && Scanner.blocked(this.st.queue[0].rel, this.st.blacklist)) this.skipCurrent();
+        },
+
+        uiSetup() {
+          const fsOk = typeof window.showDirectoryPicker === "function";
+          this.showControls(false);
+
+          const srcBadge = this.st.srcName
+            ? `<span class="inline-flex items-center rounded-full border border-amber-700/80 bg-amber-950/35 text-amber-200 text-xs px-2 py-1">${I18n.t("srcLabel")}: ${this.st.srcName}</span>`
+            : `<span class="inline-flex items-center rounded-full border border-zinc-700 bg-zinc-900 text-zinc-400 text-xs px-2 py-1">${I18n.t("srcMissing")}</span>`;
+
+          const dstBadge = this.st.dstName
+            ? `<span class="inline-flex items-center rounded-full border border-emerald-700/80 bg-emerald-950/30 text-emerald-200 text-xs px-2 py-1">${I18n.t("dstLabel")}: ${this.st.dstName}</span>`
+            : `<span class="inline-flex items-center rounded-full border border-zinc-700 bg-zinc-900 text-zinc-400 text-xs px-2 py-1">${I18n.t("dstMissing")}</span>`;
+
+          this.el.stage.innerHTML = `
+            <div class="h-full w-full grid place-items-center p-4 sm:p-6">
+              <div class="w-full max-w-2xl rounded-2xl border border-zinc-800 bg-zinc-900/80 p-6 sm:p-7 shadow-2xl">
+                <h1 class="text-lg sm:text-xl font-semibold text-zinc-100">${I18n.t("setupTitle")}</h1>
+                <p class="mt-2 text-sm text-zinc-400 leading-relaxed">${fsOk ? I18n.t("setupTxt") : I18n.t("fsMissing")}</p>
+                <div class="mt-4 flex flex-wrap gap-2">
+                  ${srcBadge}
+                  ${dstBadge}
+                </div>
+                <div class="mt-5 grid gap-3 sm:grid-cols-2">
+                  <button id="pickSrc" type="button" ${fsOk ? "" : "disabled"} class="rounded-xl border border-zinc-700 bg-zinc-950 hover:bg-zinc-800 px-4 py-2.5 text-sm font-medium disabled:opacity-50">${I18n.t("pickSrc")}</button>
+                  <button id="pickDst" type="button" ${fsOk ? "" : "disabled"} class="rounded-xl border border-zinc-700 bg-zinc-950 hover:bg-zinc-800 px-4 py-2.5 text-sm font-medium disabled:opacity-50">${I18n.t("pickDst")}</button>
+                </div>
+                <div class="mt-5">
+                  <button id="startBtn" type="button" ${fsOk ? "" : "disabled"} class="rounded-xl border border-sky-800/80 bg-sky-950/35 hover:bg-sky-900/30 px-4 py-2.5 text-sm font-semibold disabled:opacity-50">${I18n.t("start")}</button>
+                </div>
               </div>
-            </article>
-          </div>
-        `;
-      }
+            </div>
+          `;
 
-      function updatePathLabel() {
-        const pathTxt = document.getElementById("pathTxt");
-        const copyTxt = document.getElementById("copyState");
-        if (pathTxt) {
-          pathTxt.textContent = st.lastPath || "";
-          pathTxt.title = st.lastPath || "";
-        }
-        if (copyTxt) copyTxt.textContent = st.copyState || "";
-      }
+          this.el.treeTitle.textContent = I18n.t("treeTitle");
 
-      function bindMediaEvents(item) {
-        const media = document.getElementById("activeMedia");
-        const loader = document.getElementById("loader");
-        if (!media) return;
+          const pickSrc = document.getElementById("pickSrc");
+          const pickDst = document.getElementById("pickDst");
+          const startBtn = document.getElementById("startBtn");
 
-        const reveal = () => {
-          media.classList.remove("media-pending");
-          media.classList.add("media-ready");
-          if (loader) {
-            loader.classList.add("opacity-0");
-            setTimeout(() => {
-              if (loader && loader.parentNode) loader.remove();
-            }, 180);
-          }
-        };
-
-        const fail = () => autoSkipBroken(item.rel);
-
-        if (item.kind === "video") {
-          media.addEventListener("loadeddata", reveal, { once: true });
-          media.addEventListener("error", fail, { once: true });
-        } else {
-          media.addEventListener("load", reveal, { once: true });
-          media.addEventListener("error", fail, { once: true });
-        }
-      }
-
-      function renderCard() {
-        const item = st.queue[0];
-        if (!item) {
-          if (st.exhausted) doneScreen();
-          else noneScreen();
-          updateCounter();
-          return;
-        }
-
-        st.lastPath = item.rel;
-        $.board.innerHTML = cardHtml(item);
-        showControls();
-        updateCounter();
-        updatePathLabel();
-        bindMediaEvents(item);
-        maintainQueue(BUFFER_SIZE);
-      }
-
-      async function bootstrapFlow() {
-        releaseQueue();
-        st.stack = [{ rel: "", handle: st.source }];
-        st.gen = walkMedia(st);
-        st.fillJob = null;
-        st.ready = true;
-        st.exhausted = false;
-        st.busy = false;
-        st.seen = 0;
-        st.matched = [];
-        st.lastPath = "";
-        st.copyState = "";
-        updateCounter();
-
-        await fillQueue(1);
-        if (!st.queue.length && st.exhausted) {
-          noneScreen();
-          return;
-        }
-
-        renderCard();
-        maintainQueue(BUFFER_SIZE);
-      }
-
-      async function autoSkipBroken(expectedRel) {
-        if (!st.ready || st.busy || !st.queue.length) return;
-        const head = st.queue[0];
-        if (!head || head.rel !== expectedRel) return;
-
-        st.busy = true;
-        st.lastPath = head.rel;
-        releaseItem(st.queue.shift());
-        await fillQueue(BUFFER_SIZE);
-        renderCard();
-        st.busy = false;
-      }
-
-      async function swipe(kind) {
-        if (!st.ready || st.busy || !st.queue.length) return;
-
-        st.busy = true;
-        const head = st.queue[0];
-        const card = document.getElementById("card");
-        if (!card) {
-          st.busy = false;
-          return;
-        }
-
-        if (kind === MATCH) {
-          st.matched.push(head.rel);
-          await copyToTarget(head);
-        } else {
-          st.copyState = "";
-        }
-
-        card.classList.add(kind === MATCH ? "out-match" : "out-pass");
-
-        setTimeout(async () => {
-          st.seen += 1;
-          st.lastPath = head.rel;
-          releaseItem(st.queue.shift());
-          persist();
-          await fillQueue(BUFFER_SIZE);
-          renderCard();
-          st.busy = false;
-        }, 230);
-      }
-
-      async function exportZip() {
-        if (!st.matched.length) {
-          alert(t("exportEmpty"));
-          return;
-        }
-        if (!window.JSZip) {
-          alert(t("zipMissing"));
-          return;
-        }
-
-        const prev = $.btnExport.textContent;
-        $.btnExport.textContent = t("exporting");
-        $.btnExport.disabled = true;
-
-        try {
-          const zip = new JSZip();
-          const seen = new Map();
-
-          for (const rel of st.matched) {
+          pickSrc?.addEventListener("click", async () => {
             try {
-              const file = await getFileByPath(st.source, rel);
-              const base = rel.split("/").pop() || "media";
-              const idx = seen.get(base) || 0;
-              seen.set(base, idx + 1);
-              const name = idx === 0
-                ? base
-                : `${base.slice(0, base.lastIndexOf(".")) || base}_${idx}${base.includes(".") ? "." + base.split(".").pop() : ""}`;
-              zip.file(name, file);
+              this.st.src = await window.showDirectoryPicker({ mode: "read" });
+              this.st.srcName = this.st.src?.name || "";
+              this.save();
+            } catch {
+            }
+            this.uiSetup();
+          });
+
+          pickDst?.addEventListener("click", async () => {
+            try {
+              this.st.dst = await window.showDirectoryPicker({ mode: "readwrite" });
+              this.st.dstName = this.st.dst?.name || "";
+              this.save();
+            } catch {
+            }
+            this.uiSetup();
+          });
+
+          startBtn?.addEventListener("click", () => {
+            if (!this.st.src || !this.st.dst) {
+              alert(I18n.t("needBoth"));
+              return;
+            }
+            this.start();
+          });
+
+          this.renderTree();
+        },
+
+        uiEmpty() {
+          this.showControls(false);
+          this.el.stage.innerHTML = `
+            <div class="h-full w-full grid place-items-center p-4">
+              <div class="w-full max-w-2xl rounded-2xl border border-zinc-800 bg-zinc-900/80 p-6 sm:p-7 shadow-2xl text-center">
+                <h2 class="text-lg sm:text-xl font-semibold">${I18n.t("emptyTitle")}</h2>
+                <p class="mt-2 text-sm text-zinc-400">${I18n.t("emptyTxt")}</p>
+                <div class="mt-5">
+                  <button id="emptyReset" type="button" class="rounded-xl border border-zinc-700 bg-zinc-950 hover:bg-zinc-800 px-4 py-2.5 text-sm font-medium">${I18n.t("openNew")}</button>
+                </div>
+              </div>
+            </div>
+          `;
+          document.getElementById("emptyReset")?.addEventListener("click", () => this.reset());
+        },
+
+        uiDone() {
+          this.showControls(false);
+          this.el.stage.innerHTML = `
+            <div class="h-full w-full grid place-items-center p-4">
+              <div class="w-full max-w-2xl rounded-2xl border border-zinc-800 bg-zinc-900/80 p-6 sm:p-7 shadow-2xl text-center">
+                <h2 class="text-lg sm:text-xl font-semibold">${I18n.t("doneTitle")}</h2>
+                <p class="mt-2 text-sm text-zinc-400">${I18n.t("doneTxt")}</p>
+                <div class="mt-5 flex flex-wrap justify-center gap-2">
+                  <button id="doneExport" type="button" class="rounded-xl border border-zinc-700 bg-zinc-950 hover:bg-zinc-800 px-4 py-2.5 text-sm font-medium">${I18n.t("export")}</button>
+                  <button id="doneReset" type="button" class="rounded-xl border border-zinc-700 bg-zinc-950 hover:bg-zinc-800 px-4 py-2.5 text-sm font-medium">${I18n.t("openNew")}</button>
+                </div>
+              </div>
+            </div>
+          `;
+          document.getElementById("doneExport")?.addEventListener("click", () => this.exportZip());
+          document.getElementById("doneReset")?.addEventListener("click", () => this.reset());
+        },
+
+        mediaCard(item) {
+          const media = item.kind === "video"
+            ? `<video id="media" class="w-full h-full object-contain media-pending" src="${item.url}" controls autoplay muted playsinline preload="metadata"></video>`
+            : `<img id="media" class="w-full h-full object-contain media-pending" src="${item.url}" alt="${item.rel.replace(/"/g, "")}" draggable="false" />`;
+
+          return `
+            <div class="h-full w-full grid place-items-center p-2 sm:p-4">
+              <div class="w-full h-full max-h-[76vh] max-w-5xl">
+                <article id="card" class="card relative w-full h-full rounded-2xl border border-zinc-700 bg-zinc-900/85 overflow-hidden shadow-2xl">
+                  ${media}
+                  <div id="loader" class="absolute inset-0 grid place-items-center bg-zinc-950/45 backdrop-blur-[1px]">
+                    <div class="absolute w-[86%] h-[70%] rounded-xl border border-zinc-700 skeleton"></div>
+                    <div class="relative z-10 flex flex-col items-center gap-3">
+                      <span class="h-10 w-10 rounded-full border-4 border-zinc-600 border-t-sky-400 animate-spin"></span>
+                      <span class="text-[11px] uppercase tracking-[0.12em] text-zinc-300">${I18n.t("loading")}</span>
+                    </div>
+                  </div>
+                  <div class="absolute left-3 right-3 bottom-3 rounded-lg border border-zinc-700/80 bg-zinc-950/78 px-3 py-2 backdrop-blur-sm">
+                    <div class="text-[10px] uppercase tracking-[0.12em] text-zinc-400">${I18n.t("pathLabel")}</div>
+                    <div id="pathText" class="path-cut text-xs text-zinc-200" title="${item.rel.replace(/"/g, "")}">${item.rel}</div>
+                    <div id="copyText" class="mt-0.5 text-[10px] text-zinc-500">${this.st.copyMsg || ""}</div>
+                  </div>
+                </article>
+              </div>
+            </div>
+          `;
+        },
+
+        updatePathMeta() {
+          const p = document.getElementById("pathText");
+          const c = document.getElementById("copyText");
+          if (p) {
+            p.textContent = this.st.path || "";
+            p.title = this.st.path || "";
+          }
+          if (c) c.textContent = this.st.copyMsg || "";
+        },
+
+        bindMedia(item) {
+          const media = document.getElementById("media");
+          const loader = document.getElementById("loader");
+          if (!media) return;
+
+          const show = () => {
+            media.classList.remove("media-pending");
+            media.classList.add("media-ready");
+            if (loader) {
+              loader.classList.add("opacity-0");
+              setTimeout(() => loader.remove(), 170);
+            }
+          };
+
+          const fail = () => this.skipCurrent(item.rel);
+
+          if (item.kind === "video") {
+            media.addEventListener("loadeddata", show, { once: true });
+            media.addEventListener("error", fail, { once: true });
+          } else {
+            media.addEventListener("load", show, { once: true });
+            media.addEventListener("error", fail, { once: true });
+          }
+        },
+
+        renderCard() {
+          const item = this.st.queue[0];
+          if (!item) {
+            if (this.st.exhausted) this.uiDone();
+            else this.uiEmpty();
+            this.updateCounter();
+            return;
+          }
+
+          this.st.path = item.rel;
+          this.el.stage.innerHTML = this.mediaCard(item);
+          this.showControls(true);
+          this.updateCounter();
+          this.updatePathMeta();
+          this.bindMedia(item);
+          this.maintain(BUF_SIZE);
+        },
+
+        updateCounter() {
+          this.el.counter.textContent = I18n.t("progress", {
+            seen: this.st.seen,
+            match: this.st.matched.length
+          });
+        },
+
+        async copyMatch(item) {
+          if (!this.st.dst) return;
+          this.st.copyMsg = I18n.t("copyBusy");
+          this.updatePathMeta();
+
+          try {
+            const file = item.file || await item.hdl.getFile();
+            const out = await this.st.dst.getFileHandle(file.name, { create: true });
+            const wr = await out.createWritable();
+            await wr.write(file);
+            await wr.close();
+            this.st.copyMsg = I18n.t("copyOk");
+          } catch {
+            this.st.copyMsg = I18n.t("copyFail");
+          }
+
+          this.updatePathMeta();
+        },
+
+        async fill(target = BUF_SIZE) {
+          if (!this.st.gen || this.st.exhausted) return;
+          while (this.st.queue.length < target && !this.st.exhausted) {
+            const next = await this.st.gen.next();
+            if (next.done) {
+              this.st.exhausted = true;
+              break;
+            }
+
+            const item = next.value;
+            if (Scanner.blocked(item.rel, this.st.blacklist)) continue;
+
+            try {
+              const file = await item.hdl.getFile();
+              if (file.size < MIN_BYTES) continue;
+              const url = URL.createObjectURL(file);
+              this.st.queue.push({ ...item, file, url });
             } catch {
             }
           }
+        },
 
-          const blob = await zip.generateAsync({
-            type: "blob",
-            compression: "DEFLATE",
-            compressionOptions: { level: 4 }
+        maintain(target = BUF_SIZE) {
+          if (this.st.fillJob) return this.st.fillJob;
+          this.st.fillJob = (async () => {
+            try {
+              await this.fill(target);
+            } finally {
+              this.st.fillJob = null;
+              if (this.st.ready && !this.st.exhausted && this.st.queue.length < target) {
+                queueMicrotask(() => this.maintain(target));
+              }
+            }
+          })();
+          return this.st.fillJob;
+        },
+
+        async skipCurrent(expectedRel = "") {
+          if (!this.st.ready || this.st.busy || !this.st.queue.length) return;
+          const head = this.st.queue[0];
+          if (!head) return;
+          if (expectedRel && head.rel !== expectedRel) return;
+
+          this.st.busy = true;
+          this.st.path = head.rel;
+          this.release(this.st.queue.shift());
+          await this.fill(BUF_SIZE);
+          this.renderCard();
+          this.st.busy = false;
+        },
+
+        async swipe(kind) {
+          if (!this.st.ready || this.st.busy || !this.st.queue.length) return;
+          this.st.busy = true;
+
+          const head = this.st.queue[0];
+          const card = document.getElementById("card");
+          if (!card) {
+            this.st.busy = false;
+            return;
+          }
+
+          if (kind === "match") {
+            this.st.matched.push(head.rel);
+            await this.copyMatch(head);
+          } else {
+            this.st.copyMsg = "";
+          }
+
+          card.classList.add(kind === "match" ? "out-match" : "out-pass");
+
+          setTimeout(async () => {
+            this.st.seen += 1;
+            this.st.path = head.rel;
+            this.release(this.st.queue.shift());
+            this.save();
+            await this.fill(BUF_SIZE);
+            this.renderCard();
+            this.st.busy = false;
+          }, 220);
+        },
+
+        async resolveFile(rel) {
+          const i = rel.lastIndexOf("/");
+          const dirRel = i < 0 ? "" : rel.slice(0, i);
+          const name = i < 0 ? rel : rel.slice(i + 1);
+
+          let dir = this.st.src;
+          if (!dir) throw new Error("no-src");
+          if (dirRel) {
+            for (const seg of dirRel.split("/").filter(Boolean)) dir = await dir.getDirectoryHandle(seg);
+          }
+          const hdl = await dir.getFileHandle(name);
+          return hdl.getFile();
+        },
+
+        async exportZip() {
+          if (!this.st.matched.length) {
+            alert(I18n.t("exportEmpty"));
+            return;
+          }
+          if (!window.JSZip) {
+            alert(I18n.t("zipMissing"));
+            return;
+          }
+
+          const prev = this.el.btnExport.textContent;
+          this.el.btnExport.textContent = I18n.t("exporting");
+          this.el.btnExport.disabled = true;
+
+          try {
+            const zip = new JSZip();
+            const used = new Map();
+
+            for (const rel of this.st.matched) {
+              try {
+                const file = await this.resolveFile(rel);
+                const full = rel.split("/").pop() || "media";
+                const dot = full.lastIndexOf(".");
+                const stem = dot > 0 ? full.slice(0, dot) : full;
+                const ext = dot > 0 ? full.slice(dot) : "";
+                const n = used.get(full) || 0;
+                used.set(full, n + 1);
+                const name = n === 0 ? full : `${stem}_${n}${ext}`;
+                zip.file(name, file);
+              } catch {
+              }
+            }
+
+            const blob = await zip.generateAsync({ type: "blob", compression: "DEFLATE", compressionOptions: { level: 4 } });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = I18n.t("exportName");
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+          } finally {
+            this.el.btnExport.disabled = false;
+            this.el.btnExport.textContent = prev || I18n.t("export");
+          }
+        },
+
+        async start() {
+          this.releaseAll();
+          this.st.stack = [{ rel: "", hdl: this.st.src }];
+          this.st.tree.clear();
+          this.markDir("");
+          this.st.gen = Scanner.walk({
+            stack: this.st.stack,
+            blacklist: this.st.blacklist,
+            onDir: (rel) => this.markDir(rel)
           });
 
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement("a");
-          a.href = url;
-          a.download = t("exportName");
-          document.body.appendChild(a);
-          a.click();
-          a.remove();
-          URL.revokeObjectURL(url);
-        } finally {
-          $.btnExport.disabled = false;
-          $.btnExport.textContent = prev || t("export");
+          this.st.fillJob = null;
+          this.st.ready = true;
+          this.st.busy = false;
+          this.st.exhausted = false;
+          this.st.seen = 0;
+          this.st.matched = [];
+          this.st.path = "";
+          this.st.copyMsg = "";
+
+          this.updateCounter();
+          await this.fill(1);
+
+          if (!this.st.queue.length && this.st.exhausted) {
+            this.uiEmpty();
+            return;
+          }
+
+          this.renderCard();
+          this.maintain(BUF_SIZE);
+          this.save();
+        },
+
+        reset() {
+          this.releaseAll();
+          this.st.src = null;
+          this.st.dst = null;
+          this.st.srcName = "";
+          this.st.dstName = "";
+          this.st.stack = [];
+          this.st.gen = null;
+          this.st.fillJob = null;
+          this.st.ready = false;
+          this.st.busy = false;
+          this.st.exhausted = false;
+          this.st.seen = 0;
+          this.st.matched = [];
+          this.st.path = "";
+          this.st.copyMsg = "";
+          this.st.tree.clear();
+          this.updateCounter();
+          this.uiSetup();
+          this.save();
+        },
+
+        retext() {
+          document.title = I18n.t("title");
+          this.el.btnPass.textContent = I18n.t("pass");
+          this.el.btnMatch.textContent = I18n.t("match");
+          this.el.btnExport.textContent = I18n.t("export");
+          this.el.versionTag.textContent = `Script Version: ${SCRIPT_VERSION}`;
+          this.el.treeTitle.textContent = I18n.t("treeTitle");
+          this.updateCounter();
+
+          if (!this.st.ready) this.uiSetup();
+          else this.renderCard();
+        },
+
+        bind() {
+          this.el.btnPass.addEventListener("click", () => this.swipe("pass"));
+          this.el.btnMatch.addEventListener("click", () => this.swipe("match"));
+          this.el.btnExport.addEventListener("click", () => this.exportZip());
+
+          document.addEventListener("keydown", (ev) => {
+            if (!this.st.ready) return;
+            const tag = document.activeElement?.tagName || "";
+            if (["INPUT", "SELECT", "TEXTAREA", "BUTTON"].includes(tag)) return;
+
+            if (ev.key === "ArrowLeft") {
+              ev.preventDefault();
+              this.swipe("pass");
+            }
+            if (ev.key === "ArrowRight") {
+              ev.preventDefault();
+              this.swipe("match");
+            }
+          });
+
+          this.el.lang.addEventListener("change", () => {
+            I18n.lang = this.el.lang.value in I18n.dict ? this.el.lang.value : "en";
+            this.save();
+            this.retext();
+          });
+
+          window.addEventListener("beforeunload", () => this.save());
+        },
+
+        init() {
+          this.load();
+          if (!I18n.lang) I18n.lang = I18n.detect();
+          this.el.lang.value = I18n.lang;
+          this.el.versionTag.textContent = `Script Version: ${SCRIPT_VERSION}`;
+          this.bind();
+          this.retext();
+          this.uiSetup();
         }
-      }
+      };
 
-      function resetAll() {
-        releaseQueue();
-        st.source = null;
-        st.target = null;
-        st.stack = [];
-        st.gen = null;
-        st.fillJob = null;
-        st.ready = false;
-        st.exhausted = false;
-        st.busy = false;
-        st.seen = 0;
-        st.matched = [];
-        st.lastPath = "";
-        st.copyState = "";
-        persist();
-        updateCounter();
-        setupScreen();
-      }
-
-      function bindCoreEvents() {
-        $.btnPass.addEventListener("click", () => swipe(PASS));
-        $.btnMatch.addEventListener("click", () => swipe(MATCH));
-        $.btnExport.addEventListener("click", exportZip);
-
-        document.addEventListener("keydown", (ev) => {
-          if (!st.ready) return;
-          const tag = document.activeElement?.tagName || "";
-          if (["INPUT", "SELECT", "TEXTAREA"].includes(tag)) return;
-          if (ev.key === "ArrowLeft") {
-            ev.preventDefault();
-            swipe(PASS);
-          }
-          if (ev.key === "ArrowRight") {
-            ev.preventDefault();
-            swipe(MATCH);
-          }
-        });
-
-        $.lang.addEventListener("change", () => {
-          st.lang = $.lang.value in I18N ? $.lang.value : "en";
-          persist();
-          updateStaticTexts();
-          if (!st.ready) setupScreen();
-          else renderCard();
-        });
-      }
-
-      function init() {
-        const snap = restore();
-        if (snap && snap.lang && snap.lang in I18N) st.lang = snap.lang;
-        $.lang.value = st.lang;
-
-        setVersionTag();
-        updateStaticTexts();
-        bindCoreEvents();
-        setupScreen();
-      }
-
-      window.addEventListener("beforeunload", persist);
-      init();
+      if (!I18n.lang) I18n.lang = I18n.detect();
+      App.init();
     })();
   </script>
 </body>
