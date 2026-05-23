@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Photo Organizer</title>
+  <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" defer></script>
   <style>
     :root {
@@ -126,6 +127,8 @@
       width: 100%;
       height: 100%;
       object-fit: contain;
+      opacity: 1;
+      transition: opacity 180ms ease;
       user-select: none;
       -webkit-user-drag: none;
       background: repeating-linear-gradient(
@@ -135,6 +138,39 @@
         rgba(39, 39, 42, 0.75) 14px,
         rgba(39, 39, 42, 0.75) 28px
       );
+    }
+
+    .img-pending {
+      opacity: 0;
+    }
+
+    .loader-layer {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      display: grid;
+      place-items: center;
+      background:
+        radial-gradient(120% 80% at 50% 10%, rgba(63, 63, 70, 0.2), transparent 65%),
+        linear-gradient(180deg, rgba(24, 24, 27, 0.78), rgba(24, 24, 27, 0.58));
+      transition: opacity 180ms ease;
+    }
+
+    .loader-layer.is-hidden {
+      opacity: 0;
+    }
+
+    .skeleton {
+      width: min(84%, 620px);
+      height: min(72%, 420px);
+      border-radius: 14px;
+      border: 1px solid rgba(63, 63, 70, 0.75);
+      background:
+        linear-gradient(110deg, rgba(39, 39, 42, 0.25) 8%, rgba(82, 82, 91, 0.22) 18%, rgba(39, 39, 42, 0.25) 33%),
+        rgba(24, 24, 27, 0.65);
+      background-size: 200% 100%;
+      animation: skeleton-wave 1.2s linear infinite;
+      position: absolute;
     }
 
     .badge {
@@ -303,6 +339,15 @@
       }
     }
 
+    @keyframes skeleton-wave {
+      from {
+        background-position-x: 180%;
+      }
+      to {
+        background-position-x: -20%;
+      }
+    }
+
     @media (max-width: 820px) {
       .app {
         padding: 10px;
@@ -351,7 +396,10 @@
   <script>
     (() => {
       const STORAGE_KEY = "photo-triage-v1";
-      const LOOKAHEAD = 3;
+      const LOOKAHEAD = 20;
+      const BUFFER_TARGET = LOOKAHEAD + 1;
+      const MIN_BYTES = 50 * 1024;
+      const SKIP_DIRS = ["windows", "program files", "appdata", "node_modules"];
       const IMG_EXT = new Set(["jpg", "jpeg", "png", "webp", "gif", "bmp", "avif", "heic", "heif", "tiff"]);
       const MOVE_PASS = "pass";
       const MOVE_MATCH = "match";
@@ -463,6 +511,7 @@
         stack: [],
         queue: [],
         gen: null,
+        fillInFlight: null,
         matched: [],
         seen: 0,
         processing: false,
@@ -500,6 +549,11 @@
 
       function isImage(name) {
         return IMG_EXT.has(extOf(name));
+      }
+
+      function shouldSkipPath(rel) {
+        const p = `/${String(rel || "").toLowerCase()}/`;
+        return SKIP_DIRS.some((d) => p.includes(`/${d}/`));
       }
 
       function snapshot() {
@@ -557,29 +611,52 @@
           persist();
           for await (const [name, handle] of node.handle.entries()) {
             if (handle.kind === "directory") {
-              runtime.stack.push({ rel: relJoin(node.rel, name), handle });
+              const dirRel = relJoin(node.rel, name);
+              if (shouldSkipPath(dirRel)) continue;
+              runtime.stack.push({ rel: dirRel, handle });
               continue;
             }
             if (isImage(name)) {
-              yield { path: relJoin(node.rel, name), handle };
+              const fileRel = relJoin(node.rel, name);
+              if (shouldSkipPath(fileRel)) continue;
+              yield { path: fileRel, handle };
             }
           }
         }
       }
 
-      async function fillQueue() {
+      async function fillQueue(target = BUFFER_TARGET) {
         if (!state.gen || state.exhausted) return;
-        while (state.queue.length < LOOKAHEAD + 1 && !state.exhausted) {
+        while (state.queue.length < target && !state.exhausted) {
           const { value, done } = await state.gen.next();
           if (done) {
             state.exhausted = true;
             persist();
             break;
           }
-          const file = await value.handle.getFile();
-          const url = URL.createObjectURL(file);
-          state.queue.push({ path: value.path, file, url });
+          try {
+            const file = await value.handle.getFile();
+            if (file.size < MIN_BYTES) continue;
+            const url = URL.createObjectURL(file);
+            state.queue.push({ path: value.path, file, url });
+          } catch {
+          }
         }
+      }
+
+      function topUpQueue(target = BUFFER_TARGET) {
+        if (state.fillInFlight) return state.fillInFlight;
+        state.fillInFlight = (async () => {
+          try {
+            await fillQueue(target);
+          } finally {
+            state.fillInFlight = null;
+            if (state.ready && !state.exhausted && state.queue.length < target) {
+              queueMicrotask(() => topUpQueue(target));
+            }
+          }
+        })();
+        return state.fillInFlight;
       }
 
       function releaseItem(item) {
@@ -669,10 +746,38 @@
             <article id="card" class="card">
               <span class="badge pass">${t("pass")}</span>
               <span class="badge match">${t("match")}</span>
-              <img src="${head.url}" alt="${head.path.replace(/"/g, "")}" draggable="false" />
+              <img id="activeImg" class="img-pending" src="${head.url}" alt="${head.path.replace(/"/g, "")}" draggable="false" />
+              <div id="loaderLayer" class="loader-layer">
+                <div class="skeleton"></div>
+                <div class="relative z-10 flex items-center justify-center">
+                  <span class="h-11 w-11 rounded-full border-4 border-zinc-600 border-t-sky-400 animate-spin"></span>
+                </div>
+              </div>
             </article>
           </div>
         `;
+
+        const $img = document.getElementById("activeImg");
+        const $loader = document.getElementById("loaderLayer");
+        if ($img && $loader) {
+          const releaseLoader = () => {
+            $img.classList.remove("img-pending");
+            $loader.classList.add("is-hidden");
+            setTimeout(() => {
+              if ($loader && $loader.parentNode) $loader.remove();
+            }, 180);
+          };
+
+          $img.onload = () => {
+            releaseLoader();
+          };
+
+          $img.onerror = () => {
+            autoSkipBroken(head.path);
+          };
+        }
+
+        topUpQueue(BUFFER_TARGET);
         $.actions.classList.remove("hide");
         updateCounter();
       }
@@ -703,6 +808,7 @@
       async function bootstrap(root, saved) {
         state.root = root;
         state.queue = [];
+        state.fillInFlight = null;
         state.processing = false;
         state.exhausted = false;
 
@@ -728,13 +834,14 @@
         }
 
         state.gen = scanImages(state);
-        await fillQueue();
+        await fillQueue(1);
         state.ready = true;
 
         if (!state.queue.length && state.exhausted) {
           uiEmpty();
         } else {
           renderCard();
+          topUpQueue(BUFFER_TARGET);
         }
         persist();
       }
@@ -763,12 +870,27 @@
           releaseItem(state.queue.shift());
           persist();
 
-          await fillQueue();
+          await fillQueue(BUFFER_TARGET);
           renderCard();
           state.processing = false;
         };
 
         card.addEventListener("animationend", done, { once: true });
+      }
+
+      async function autoSkipBroken(expectedPath) {
+        if (state.processing || !state.ready || !state.queue.length) return;
+        const head = state.queue[0];
+        if (!head || head.path !== expectedPath) return;
+
+        state.processing = true;
+        releaseItem(state.queue.shift());
+        state.lastProcessed = expectedPath;
+        persist();
+
+        await fillQueue(BUFFER_TARGET);
+        renderCard();
+        state.processing = false;
       }
 
       function pathParentAndName(rel) {
@@ -843,6 +965,7 @@
         state.stack = [];
         state.queue = [];
         state.gen = null;
+        state.fillInFlight = null;
         state.matched = [];
         state.seen = 0;
         state.processing = false;
